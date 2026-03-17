@@ -1,0 +1,33 @@
+# CranioScan3D — Fast pipeline configuration (reduced quality for quick iteration)
+
+extraction:
+  frame_interval: 30          # Extract every 30th frame (fewer frames)
+  blur_threshold: 80.0
+  resize_max_dim: 1280        # Downscale to max 1280px on longest side
+  output_format: "jpg"
+  jpeg_quality: 85
+
+reconstruction:
+  camera_model: "SIMPLE_RADIAL"
+  single_camera: true
+  exhaustive_matching: true
+  colmap_bin: "colmap"
+  openmvs_bin_dir: ""
+
+dense:
+  densify_resolution_level: 2    # Quarter resolution
+  densify_min_resolution: 320
+  densify_max_resolution: 1600
+  reconstruct_mesh: true
+  refine_mesh: false             # Skip refinement for speed
+
+mesh:
+  outlier_nb_neighbors: 20
+  outlier_std_ratio: 2.0
+  poisson_depth: 8
+  smooth_iterations: 3
+  smooth_lambda: 0.5
+
+pipeline:
+  stop_on_error: true
+  log_level: "INFO"

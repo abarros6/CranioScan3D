@@ -1,0 +1,33 @@
+# CranioScan3D — Default pipeline configuration (full quality)
+
+extraction:
+  frame_interval: 15          # Extract every Nth frame
+  blur_threshold: 100.0       # Laplacian variance threshold; below = blurry
+  resize_max_dim: null        # No resize — use full resolution
+  output_format: "jpg"
+  jpeg_quality: 95
+
+reconstruction:
+  camera_model: "SIMPLE_RADIAL"
+  single_camera: true
+  exhaustive_matching: true   # For small datasets (<200 images)
+  colmap_bin: "colmap"
+  openmvs_bin_dir: ""         # Empty = use PATH
+
+dense:
+  densify_resolution_level: 1    # 0=full, 1=half, 2=quarter
+  densify_min_resolution: 640
+  densify_max_resolution: 3200
+  reconstruct_mesh: true
+  refine_mesh: true
+
+mesh:
+  outlier_nb_neighbors: 20
+  outlier_std_ratio: 2.0
+  poisson_depth: 9
+  smooth_iterations: 5
+  smooth_lambda: 0.5
+
+pipeline:
+  stop_on_error: true
+  log_level: "INFO"

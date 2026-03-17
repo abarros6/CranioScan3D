@@ -1,0 +1,52 @@
+# Data (large binary files, generated outputs)
+data/captures/
+data/frames/
+data/reconstructions/
+data/results/
+
+# 3D mesh formats
+*.ply
+*.obj
+*.mvs
+*.stl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment
+.env
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# COLMAP artifacts
+*.db
+colmap_output/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
