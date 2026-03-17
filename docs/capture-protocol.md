@@ -1,257 +1,385 @@
-# Capture Protocol — CranioScan3D Clinical Use
+# CranioScan3D — Video Capture Protocol
 
-## Purpose
-
-This document defines the standard operating procedure (SOP) for recording
-iPhone video suitable for CranioScan3D 3D reconstruction. It is intended for
-trained clinical staff and should be read in conjunction with
-`scripts/capture_guide.md` (operator quick reference).
+**Version:** 1.0
+**Applies to:** CranioScan3D pipeline v0.1.0+
+**Target operator:** Clinician or researcher with no photogrammetry background
 
 ---
 
-## 1. Patient Preparation
+## Why this document matters
 
-### 1.1 Eligibility
+The 3D reconstruction quality is almost entirely determined by video quality. A perfect 5-minute reconstruction cannot recover from a poorly recorded 45-second clip. COLMAP (the Structure-from-Motion engine used in this pipeline) needs:
 
-CranioScan3D is designed for infants aged 0–18 months presenting for
-craniosynostosis screening or follow-up. The pipeline is not validated for
-older children or adults (different scalp texture, hair coverage).
+- Consistent, sharp frames with natural texture
+- Sufficient overlap between adjacent frames (≥80%)
+- Coverage of the entire surface with no gaps
+- A stationary subject relative to the camera between frames
+- Stable, non-varying lighting (no flickering, no moving shadows)
 
-### 1.2 Hair and scalp preparation
-
-- Remove any hat, headband, or hair clip before capture.
-- If hair is present: part it to expose as much scalp as possible. Dense
-  hair significantly reduces MVS point cloud quality because it creates
-  occluded, textureless regions.
-- If the infant has minimal hair (common under 3 months): no preparation needed.
-
-### 1.3 Infant positioning
-
-**Supine on padded support (preferred):**
-- Place the infant on a white or light-grey padded foam support that allows
-  the operator to walk a full 360° orbit.
-- Ensure the head is gently supported but free to be viewed from all angles.
-
-**Held by caregiver:**
-- Caregiver holds infant in front-facing position.
-- Operator walks orbit around caregiver and infant.
-- Slightly more difficult to achieve full posterior coverage.
+Every instruction in this document exists because violating it causes a specific, hard-to-diagnose failure in the pipeline. The troubleshooting table at the end maps symptoms to root causes.
 
 ---
 
-## 2. Environment Setup
+## 1. Equipment
 
-### 2.1 Lighting
+### Required
 
-| Setup | Acceptable? | Notes |
-|-------|-------------|-------|
-| Two diffuse softboxes, 45° bilateral | Optimal | Best for even illumination |
-| North-facing window (overcast) | Good | Soft diffuse daylight |
-| Overhead fluorescent (clinic standard) | Marginal | May cause specular on bare scalp |
-| Direct sunlight | Unacceptable | Harsh shadows break MVS |
-| Single point light source | Unacceptable | Half the head will be too dark |
+| Item | Notes |
+|------|-------|
+| iPhone 12 or later | Any model with 4K video. LiDAR not needed. |
+| Calibration object | A rigid object with a **known size** placed next to the subject. A 10mm cube (3D-printed) is ideal. Must be a vivid colour (bright red or yellow) clearly different from skin tone and background. |
+| Plain background | Light grey or white cloth, mat, or foam pad. Non-reflective. No patterns. |
 
-Target lighting level: subject illumination 300–800 lux at the head surface.
-Check iPhone preview: the scalp should show visible skin texture, not be
-washed out (overexposed) or under-lit.
+### Recommended
 
-### 2.2 Background
-
-Place a light-grey or white cloth behind and below the infant's head. This
-gives COLMAP features to distinguish the head from the background (needed for
-correct camera pose estimation) while avoiding distracting patterns.
-
-Avoid: toys, patterned blankets, or other heads/faces in the frame.
-
-### 2.3 Calibration cube placement
-
-Attach the 10×10×10mm calibration cube to the foam support, positioned so
-it is visible at approximately 40–50% of orbit positions. Recommended
-placement: lateral to the infant's ear, at head height. Use a small piece of
-non-permanent adhesive to secure it.
-
-The cube colour must differ strongly from the skin tone and from the
-background. **Recommended: vivid red or vivid yellow.**
+| Item | Notes |
+|------|-------|
+| Two diffuse light sources | Softboxes, ring lights with diffuser, or large windows — see lighting section |
+| Second operator | One to hold/distract the infant, one to record |
+| Foam head support | Keeps the infant's head stable during recording |
+| Pacifier | Useful for keeping infants calm and still |
 
 ---
 
-## 3. iPhone Setup
+## 2. iPhone Camera Settings
 
-### 3.1 Pre-capture checklist
+Configure these **before** entering the room. Settings changes mid-session waste time and risk forgetting a critical toggle.
 
-- [ ] Battery > 50%
-- [ ] Storage > 2 GB free
-- [ ] Camera mode: **Video** (not Cinematic, not Slow-Mo)
-- [ ] Resolution: **4K at 30fps** (Settings → Camera → Record Video)
-- [ ] Format: Most Compatible (H.264) or High Efficiency — both supported
-- [ ] Electronic Image Stabilisation: OFF (Settings → Camera → toggle off
-      if available on your model; most models disable it automatically in
-      Video mode when set to 4K 60fps or lower)
-- [ ] Flash: OFF
-- [ ] HDR: OFF (Settings → Camera → Smart HDR: off)
-- [ ] Lock focus/exposure: tap-and-hold on the infant's forehead until
-      AE/AF Lock banner appears
+### Step-by-step
 
-### 3.2 Focus lock procedure
+1. Open **Settings → Camera → Record Video**
+   - Set to **4K at 30 fps**
+   - Do **not** use 4K 60fps (larger files, no benefit for reconstruction)
+   - Do **not** use slow-motion modes
 
-Before starting recording:
-1. Frame the infant's forehead in the centre of the viewfinder.
-2. Tap and hold until "AE/AF Lock" appears at the top of the screen.
-3. Begin recording immediately.
+2. Open **Settings → Camera**
+   - Turn **Smart HDR off** — HDR composites multiple exposures, creating inconsistent brightness between frames that breaks COLMAP's feature matching
+   - Turn **Lens Correction off** (if visible on your model) — the pipeline applies its own undistortion using COLMAP's recovered camera model; double-correcting warps the geometry
 
-This prevents the autofocus from hunting during the orbit, which would
-cause frames to be defocused and discarded by the blur filter.
+3. Open the **Camera app → Video mode**
+   - Swipe away any filter (make sure the filter dot shows "Original")
+   - Turn off **Cinematic mode** — use standard video recording only
+
+4. **Do not switch lenses.** Tap the 1× button to confirm you are on the standard wide lens. The pipeline's `SIMPLE_RADIAL` camera model is calibrated for a single fixed lens. Switching between wide, standard, and telephoto mid-video is fatal to the reconstruction.
+
+### Settings summary
+
+| Setting | Required value | Why |
+|---------|---------------|-----|
+| Resolution | 4K 30fps | Sufficient detail, manageable file size |
+| Smart HDR | Off | Frame-to-frame brightness consistency |
+| Lens Correction | Off | Avoid double undistortion |
+| Cinematic mode | Off | Standard video only |
+| Flash | Off | Creates harsh, moving shadows |
+| Lens | Standard (1×) | Consistent camera model throughout |
+| Video stabilisation | **Off** | Critical — see note below |
+
+### Critical: Electronic Image Stabilisation (EIS)
+
+This is the single most important setting. **Electronic stabilisation must be off.**
+
+EIS works by cropping and warping the image to counteract hand movement. This means consecutive frames are not from a rigid camera — the field of view shifts, rotates, and scales between frames in a way that is invisible to the operator but catastrophic for Structure-from-Motion. COLMAP assumes a pinhole camera with fixed intrinsics; EIS violates this assumption and will either cause the reconstruction to fail entirely or produce a severely distorted mesh.
+
+**How to disable EIS on iPhone:**
+- Settings → Camera → Record Video → **Video Stabilisation → Off** (or Standard)
+- "Standard" uses optical stabilisation (OIS, hardware gimbal) which is acceptable. "Enhanced" or "Cinematic" use electronic/digital stabilisation — these must be off.
+
+---
+
+## 3. Scene Setup
+
+Get the scene right before involving the subject. Changing lights or background mid-session causes frame-to-frame inconsistencies.
+
+### 3a. Lighting
+
+The goal is **soft, even, shadow-free illumination** across the entire head surface.
+
+**Ideal setup:**
+```
+  [softbox / window]              [softbox / window]
+          \                               /
+           \          HEAD               /
+            \          ●                /
+             \                         /
+             45°                     45°
+         (slightly above head height on each side)
+```
+
+- Two light sources at roughly 45° left and right, slightly above head height
+- Both sources should be similar brightness — one dominant light casts deep shadows on the opposite side that COLMAP cannot match
+- A large north-facing window on one side + a white foam reflector card on the other works well if softboxes are unavailable
+
+**What to avoid:**
+
+| Lighting problem | Effect on reconstruction |
+|-----------------|--------------------------|
+| Direct sunlight | Harsh shadows that move as you orbit; blown-out highlights |
+| Single point source | Deep shadows on opposite side — SIFT features missing in shadow |
+| Flickering fluorescents | Per-frame brightness variation; SIFT matching fails |
+| Overhead downlight only | Top overexposed, sides underexposed |
+| Mirrors or shiny windows in background | Reflections create ghost geometry |
+
+**Hair:** Dark, uniform hair has no texture for COLMAP to track. If the infant has significant hair, place a thin, light-coloured cotton cap over the head to add trackable surface texture. Bald and short-haired infants reconstruct best.
+
+### 3b. Background
+
+- Use a **plain, non-patterned, matte surface** — light grey or white foam mat, cloth, or clinical paper roll
+- The background should have minimal texture — COLMAP will attempt to reconstruct it; a plain background keeps the sparse model focused on the head
+- Keep the background at least 20–30 cm behind the subject so it is at a different depth
+
+### 3c. Calibration object
+
+The calibration object allows pipeline stage 6 to convert the mesh from arbitrary model units into millimetres.
+
+- Use a **rigid** object with a **precisely known dimension** — a 3D-printed 10mm cube, a 25mm coin, or a 20mm LEGO stud all work
+- Place it **adjacent to the subject**, attached to the head support so it moves with the infant if they move
+- It must be **visible from at least half the orbit angles** — if it disappears behind the head for the full back half, scale correction will fail
+- Choose a **vivid colour** (bright red, orange, or yellow) clearly distinct from skin tone and background — this enables colour-based segmentation during scale correction
+- The object must be **completely stationary** relative to the subject during recording
 
 ---
 
 ## 4. Recording Procedure
 
-### 4.1 Orbit sequence
+### 4a. Lock focus and exposure before pressing record
 
-Execute three orbital passes at increasing inclination angles:
+1. Open Camera app in Video mode
+2. **Tap and hold** on the infant's head in the viewfinder until the **AE/AF Lock** banner appears at the top of the screen
+3. This locks both autofocus and autoexposure for the duration of the recording
+4. If the subject moves significantly, stop recording, re-lock, and start a new clip
 
-**Pass 1 — Equatorial orbit (primary)**
-- Hold iPhone at 0° elevation (lens level with the infant's ear)
-- Orbit fully around the head in 15–20 seconds
-- Starting position: operator facing infant's right ear
+Why this matters: autofocus changes the effective focal length between frames, which changes the camera's intrinsic parameters. COLMAP assumes fixed intrinsics (`single_camera=1`). Autofocus drift causes feature matches to disagree about 3D positions, producing a distorted sparse model.
 
-**Pass 2 — Superior orbit (crown coverage)**
-- Hold iPhone at approximately 30–40° above horizontal (angled down toward
-  the top of the head)
-- Orbit fully around the head in 15–20 seconds
+### 4b. The orbit path
 
-**Pass 3 — Inferior orbit (base coverage, optional)**
-- Hold iPhone at approximately 20° below horizontal (angled up toward the chin)
-- Partial orbit 180° (front to back) — do not tilt below neck level
+The operator moves around the stationary subject in a continuous, slow arc. The subject must not move.
 
-Total video duration: 45–60 seconds (all three passes in one continuous take,
-or as separate files).
+```
+              [CROWN PASS]
+           tilt phone 30° down
+              ↓  ↓  ↓  ↓
+          _______________
+         /               \
+        |   [TOP VIEW]    |
+        |        ●        |   ← subject's head
+        |                 |
+         \_______________/
 
-### 4.2 Movement guidelines
+← ← ← ← EQUATORIAL ORBIT → → → →
 
-- Move at a **constant, slow speed** — approximately 1 full orbit per 15–20s
-- Do not pause or reverse direction mid-orbit
-- Keep the **head centred** in the frame at all times
-- Maintain a **consistent distance of 30–40 cm** from the top of the head
-- Ensure both **ears, the forehead, the vertex, and the back of the head**
-  are all visible in at least 10 frames each
+   Start at left ear.
+   Move: left ear → forehead → right ear → back of head → left ear
+   One full 360° circle.
+```
 
-### 4.3 When to stop and re-record
+**Required passes:**
 
-Stop and re-record if:
-- The infant moves their head significantly (>15°) during an orbit pass
-- The iPhone autofocus hunts (image goes blurry for more than 0.5 seconds)
-- You accidentally occlude the head with your hand or arm
-- A caregiver's head enters the frame
+| Pass | Camera angle | Duration | What it captures |
+|------|-------------|----------|-----------------|
+| Equatorial | Camera held level, pointed at sides of head | 15–20 sec | Ears, forehead, temples, occiput |
+| Crown | Tilt phone ~30° downward while orbiting | 10–15 sec | Top of skull, bregma, sagittal region |
+
+**Optional pass:**
+
+| Pass | Camera angle | Duration | What it captures |
+|------|-------------|----------|-----------------|
+| Low | Tilt phone ~20° upward while orbiting | 10 sec | Sub-occipital, chin/neck junction |
+
+**Total recording time:** 30–50 seconds for both required passes.
+
+### 4c. Distance and framing
+
+- Maintain **30–40 cm** from the surface of the head throughout the entire orbit
+- The head should fill **60–70% of the frame** — large enough to capture surface detail, small enough that the whole head stays in frame
+- Keep the head **centred** horizontally and vertically in every frame
+- Both ears must be fully visible during the equatorial pass; the full crown must be visible during the crown pass
+
+```
+Good framing:              Too close:              Too small:
+┌───────────────┐         ┌───────────────┐       ┌───────────────┐
+│               │         │  ┌──────────┐ │       │               │
+│  ┌─────────┐  │         │  │▓▓▓▓▓▓▓▓▓▓│ │       │  (  HEAD  )   │
+│  │  HEAD   │  │         │  │▓▓▓▓▓▓▓▓▓▓│ │       │               │
+│  └─────────┘  │         │  └──────────┘ │       │               │
+│               │         └───────────────┘       └───────────────┘
+└───────────────┘              ✗ cropped              ✗ too small
+      ✓ ideal
+```
+
+### 4d. Movement speed
+
+Move **as slowly as you comfortably can** while continuously circling the subject.
+
+At 4K 30fps, each frame should overlap at least 80% with the previous frame. For a head at 35 cm distance, this means:
+
+- Equatorial orbit: **one full circle in 15–20 seconds**
+- You will record approximately 450–600 frames per pass
+- After frame extraction (default: every 15 frames with blur filtering), you get 30–50 usable frames per pass — enough for COLMAP
+
+**Self-check:** After recording, scrub through the video at 1× speed. Adjacent frames should look nearly identical with only a tiny lateral shift. If you can see obvious movement from frame to frame, the orbit was too fast.
+
+Consequences of moving too fast:
+- Frame overlap drops below 80%
+- COLMAP's exhaustive matcher cannot find enough correspondences between adjacent views
+- The sparse model either fails entirely or registers only a fraction of images
+
+### 4e. If the subject moves
+
+If the infant moves their head significantly (more than ~2–3 cm) mid-orbit:
+
+1. **Stop recording immediately**
+2. Wait for the infant to settle and reposition their head
+3. Re-lock AE/AF
+4. **Start a new recording file from the beginning**
+
+Do not attempt to continue the same file after a large head movement. There is no post-processing fix for a mid-orbit rigid-body violation. COLMAP will fail to stitch the frames before and after the movement into a consistent model.
 
 ---
 
 ## 5. File Transfer and Naming
 
-### 5.1 Transfer
+### Transfer to Mac Mini
 
-Transfer video from iPhone to Mac Mini via:
-- **AirDrop** (fastest, wireless): share from Photos app
-- **USB-C cable** + Image Capture app
+| Method | Instructions |
+|--------|-------------|
+| AirDrop | On iPhone: Photos → select video → Share → AirDrop → Mac Mini. Fastest. |
+| USB-C cable | Connect iPhone, open Image Capture on Mac, import the .MOV file. |
+| iCloud Photos | Video appears in ~/Pictures after sync — allow 2–5 min for 4K files. |
 
-### 5.2 File naming convention
+### File naming convention
+
+Save to `data/captures/` using an anonymised session ID:
 
 ```
-data/captures/<SESSION_ID>/<SESSION_ID>_<DATE>.mp4
-
-Examples:
-  data/captures/SCN001/SCN001_20240315.mp4
-  data/captures/SCN002/SCN002_20240315.mp4
+data/captures/
+└── SCN001/
+    ├── SCN001_20260317.mp4     ← primary recording
+    └── SCN001_20260317_b.mp4  ← second attempt if needed
 ```
 
-**Session ID format**: `SCN` + three-digit sequential number.
-Do **not** include the infant's name, date of birth, or NHS/hospital number
-in the filename. Record the session ID to patient identifier mapping in the
-secure clinical database only.
+Format: `SCN` + zero-padded subject number + `_` + ISO date (YYYYMMDD).
 
-### 5.3 Video quality verification
+Do not include subject names, dates of birth, or any identifying information in filenames. The entire `data/` directory is git-ignored and must not be committed.
 
-Before starting the pipeline, verify the video in QuickTime Player:
-- Plays without stuttering
-- Head is in focus throughout
-- Calibration cube is visible
-- No obvious motion blur on the scalp texture
+### Pre-pipeline verification
+
+Before running the pipeline, verify in QuickTime Player:
+- Video plays back smoothly — no stuttering or dropped frames
+- Full head is visible throughout with correct framing
+- Lighting is consistent across the orbit (no sudden brightness changes)
+- Calibration object is visible for most of the orbit
+- No large head movements visible
 
 ---
 
-## 6. Pipeline Execution
+## 6. Running the Pipeline
 
 ```bash
-# Activate the environment
-source ~/CranioScan3D/venv/bin/activate
+cd ~/projects/CranioScan3D
+source venv/bin/activate
 
-# Run the pipeline
+# First run on a new subject — use fast config to check quality quickly:
 cranioscan \
-  --input data/captures/SCN001/SCN001_20240315.mp4 \
+  --input data/captures/SCN001/SCN001_20260317.mp4 \
+  --output-dir data/results/SCN001 \
+  --config configs/fast.yaml
+
+# Full quality clinical run:
+cranioscan \
+  --input data/captures/SCN001/SCN001_20260317.mp4 \
   --output-dir data/results/SCN001 \
   --config configs/default.yaml
 
-# Expected runtime on Mac Mini M2 (8-core):
-#   Extraction:    ~1 min
-#   COLMAP sparse: ~5–15 min (depends on frame count)
-#   Undistortion:  ~2 min
-#   OpenMVS dense: ~20–40 min (CPU-only)
-#   Mesh cleanup:  ~3 min
-#   Total:         ~30–60 min per session
+# Run only extraction + COLMAP to check coverage before full pipeline:
+cranioscan \
+  --input data/captures/SCN001/SCN001_20260317.mp4 \
+  --output-dir data/results/SCN001 \
+  --stop-after sparse \
+  --config configs/fast.yaml
 ```
 
-For faster iteration during development, use `configs/fast.yaml` (~10–20 min).
+### Reading the COLMAP output
+
+After the `sparse` stage, check the logs for:
+
+```
+Mapper: registered 87/92 images
+```
+
+| Registration rate | Interpretation |
+|------------------|---------------|
+| ≥ 90% | Good — proceed to dense |
+| 70–90% | Acceptable — some coverage gaps but usually recoverable |
+| < 70% | Poor — inspect the video and consider re-recording |
 
 ---
 
-## 7. Landmark Placement (Month 3 — pending implementation)
+## 7. Quality Targets
 
-After mesh processing completes, run the landmark GUI:
+| Metric | Minimum | Target |
+|--------|---------|--------|
+| Sharp frames extracted | 50 | 80–150 |
+| COLMAP registered images | 80% | ≥ 95% |
+| Sparse point cloud | 3,000 pts | ≥ 8,000 pts |
+| Dense point cloud | 200,000 pts | ≥ 500,000 pts |
+| Final mesh triangles | 30,000 | ≥ 80,000, watertight |
+| AP length accuracy vs caliper | — | < 2 mm |
+| CVAI repeatability (same video, two runs) | — | < 0.5% |
+
+---
+
+## 8. Troubleshooting
+
+| Symptom | Likely cause | How to confirm | Fix |
+|---------|-------------|----------------|-----|
+| Very few frames extracted (<30) | Video too short, or blur threshold too high | Check `frame_extractor` log | Slow down orbit; re-record |
+| All frames marked blurry | EIS active, or orbit too fast | All frames below blur threshold in log | Disable EIS; slow orbit |
+| COLMAP registers <60% of images | Insufficient overlap or coverage gaps | Check unregistered image list in COLMAP log | Slow down; fill coverage gaps |
+| Large holes in top of skull mesh | Crown pass missing or rushed | Sparse point cloud has no superior points | Add proper crown pass |
+| Mesh stretched or sheared | EIS was active | Point cloud looks smeared in one direction | Disable EIS; re-record |
+| Mesh scale wildly wrong | Calibration cube not detected | Scale correction stage logs a warning or None | Use brighter cube colour; ensure visible from most angles |
+| Two disconnected model fragments | Infant moved head mid-orbit | Two clusters visible in sparse point cloud | Re-record; always start new clip after any large movement |
+| One side has poor mesh detail | Lighting too one-sided | That side's frames have few SIFT features | Add second light source; use reflector card |
+| Scalp blown out / overexposed | Overhead light too strong, or HDR on | White regions in mesh texture | Reduce overhead light; confirm Smart HDR off |
+| Hair causes holes in mesh | Uniform dark texture, no SIFT features | Missing points over hair region | Use light-coloured cotton cap |
+| Reconstruction fails entirely | Multiple possible causes | Find first ERROR in stage logs | Use `--stop-after` to isolate failing stage |
+
+---
+
+## 9. Testing Without an Infant
+
+To validate the pipeline before clinical use, record any round object of similar scale (~15–18 cm diameter):
+
+| Stand-in object | Why it works |
+|-----------------|-------------|
+| Football / basketball | Similar diameter; round geometry |
+| Large melon or pumpkin | Natural surface texture; excellent SIFT features |
+| Foam head model (photography prop) | Correct geometry; available from suppliers |
+| 3D-printed head phantom | Best for quantitative validation — compare pipeline output to caliper measurements in `data/phantoms/` |
+
+Apply the **same protocol exactly**: same lighting setup, same camera settings, same orbit path, same calibration object placement. This confirms the full pipeline works correctly before any clinical contact.
+
+**Minimum software smoke test:**
 
 ```bash
-# (Available from Month 3)
-python -m cranioscan.gui.landmark_gui \
-  --mesh data/results/SCN001/mesh/mesh_scaled.ply \
-  --output data/results/SCN001/results/landmarks.json
+# Record any round object and run:
+cranioscan \
+  --input data/captures/test/object.mp4 \
+  --output-dir data/results/test \
+  --config configs/fast.yaml \
+  --stop-after mesh
 ```
-
-The GUI will suggest landmark positions based on mesh curvature. The operator
-confirms or adjusts each suggestion using the 3D viewer.
-
-**Estimated time per session**: 5–10 minutes with curvature assistance.
 
 ---
 
-## 8. Output Review and Report
+## 10. Planned: CranioCapture iOS App
 
-After pipeline completion, outputs are in `data/results/<SESSION_ID>/`:
+A dedicated iPhone app (**CranioCapture**) is on the project roadmap. It will replace this manual protocol with a fully guided workflow:
 
-```
-SCN001/
-├── frames/          Extracted JPEG frames
-├── sparse/          COLMAP database and sparse model
-├── undistorted/     Undistorted images for OpenMVS
-├── dense/           OpenMVS dense output (mesh.ply)
-├── mesh/            Cleaned mesh (mesh_clean.ply, mesh_scaled.ply)
-└── results/         measurements.json, landmarks.json, report.pdf
-```
+- Automatically enforces all required camera settings (4K 30fps, AE/AF lock, EIS off)
+- On-screen orbit guide showing the operator's real-time position around the head
+- Audio and haptic feedback for orbit speed (too fast / too slow) and frame sharpness
+- Automatic detection of orbit completion — stops recording after equatorial + crown pass
+- Wireless video transfer directly to the Mac pipeline
 
-Review the cleaned mesh in MeshLab or Open3D Viewer before confirming
-measurements. Check for:
-- Topological completeness (no large holes)
-- Correct scale (head should be approximately 100–130mm AP length for
-  an infant aged 0–6 months)
-- No obvious outlier spikes or artefacts
-
----
-
-## 9. Data Governance
-
-- All session data must be stored on the encrypted Mac Mini local drive.
-- Session ID → patient mapping is maintained only in the clinical database.
-- The `data/` directory must never be committed to git (enforced by `.gitignore`).
-- Video files, frames, and reconstructions are deleted after report generation
-  and clinical filing, per the data retention policy.
-- This tool is a **research prototype** and **not a CE-marked medical device**.
-  Measurements are for research purposes only and must not be used alone to
-  inform clinical decisions.
+Until CranioCapture is available, this document is the operating protocol.
