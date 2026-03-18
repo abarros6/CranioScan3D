@@ -5,6 +5,54 @@ Most recent entry at the top.
 
 ---
 
+## 2026-03-18 — First full end-to-end pipeline run
+
+### What was tested
+Three iPhone videos (IMG_9837–9839.MOV) of a Bluetooth speaker with dice as scale
+reference. Progressive failures led to finding and fixing 4 bugs, culminating in a
+successful full pipeline run on IMG_9839.MOV.
+
+### Bugs found and fixed (all committed in 1353f52)
+
+| Stage | Bug | Fix |
+|-------|-----|-----|
+| sparse | `--SiftExtraction.use_gpu` unrecognised | COLMAP 4.x renamed to `--FeatureExtraction.use_gpu` / `--FeatureMatching.use_gpu` |
+| undistort | `images.txt` not found | COLMAP 4.x writes binary format; updated check to accept `images.bin`, parse count from first 8 bytes (uint64) |
+| dense | `cameras.bin` not found by InterfaceCOLMAP | `cwd=dense_dir` caused relative paths to resolve against wrong directory; fixed by resolving all paths to absolute |
+| mesh | `mesh.ply` not found | Hardcoded fallback names didn't match OpenMVS outputs; fixed to search for `scene_dense_mesh_refine.ply` → `scene_dense_mesh.ply` |
+
+### Results
+- **COLMAP**: 83/83 images registered (100%), 5,842 points, reprojection error 0.70px
+- **DensifyPointCloud**: 83 depth maps generated
+- **ReconstructMesh**: 149,643 vertices / 299,090 triangles
+- **Poisson + Taubin**: final mesh 317,847 vertices / 633,271 triangles
+- Output: `data/results/test_IMG_9839/mesh/mesh_clean.ply` — viewable in MeshLab
+
+### Known issues with this run
+- First two videos (IMG_9837, IMG_9838) had severe motion blur (median Laplacian score
+  8–10) caused by iPhone Enhanced Stabilisation being on. Fixed by disabling it.
+- IMG_9839 had max blur score of 49.7 (vs 155 when EIS is truly off). Pipeline still
+  worked but quality would be better with sharper frames.
+- Background geometry (floor, laundry basket) was reconstructed alongside the object.
+  Root cause: no plain background. Poisson creates a single unified watertight surface
+  so software-only cleanup is not feasible — fix is at the recording stage.
+- RefineMesh was skipped (OpenMVS did not produce `scene_dense_mesh.mvs`; only the PLY).
+  Minor quality impact.
+
+### Lessons for recording setup
+- EIS must be **off** (Settings → Camera → Record Video → Enhanced Stabilisation → Off)
+- Use a **plain white/grey background** (sheet, foam mat) to avoid background reconstruction
+- Use a **textured subject** — the black speaker with uniform mesh texture is near-worst-case
+  for SIFT. Hair, skin, shoes, fruit all have better texture.
+- Tap-hold for AE/AF lock before pressing record
+
+### Pipeline config used
+`/tmp/debug.yaml`: `frame_interval=5`, `blur_threshold=20.0`, `resize_max_dim=1280`.
+Default config (`default.yaml`) has `blur_threshold=100.0` which is correct for
+well-recorded video; the permissive threshold was only needed due to EIS blur.
+
+---
+
 ## 2026-03-17 — Session close: verification gap documented
 
 ### What was clarified

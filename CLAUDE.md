@@ -59,26 +59,26 @@ tests/                 # 53 tests, all synthetic data, no COLMAP needed
 
 ---
 
-## Current status (as of 2026-03-17)
+## Current status (as of 2026-03-18)
 
-**Working:**
+**Working (end-to-end verified on real video 2026-03-18):**
 - 53/53 tests passing
-- All 17 module imports OK
-- Full pipeline dry-run verified
-- COLMAP installed and on PATH
-- Python venv set up with all dependencies
+- Stages 1–5 fully exercised: extraction → sparse → undistort → dense → mesh
+- COLMAP 83/83 image registration on iPhone video of real object
+- Full OpenMVS chain: InterfaceCOLMAP → DensifyPointCloud → ReconstructMesh
+- Open3D Poisson + Taubin → clean mesh PLY output
+- Pipeline correctly resumes from any stage with `--skip-to`
 
 **Not yet working:**
 - Stages 6–9 (scale, landmarks, measurement, report) are stubs raising `NotImplementedError`
-- Pipeline not yet tested on real video — needs a physical object or head phantom recording
+- RefineMesh (stage 4 of OpenMVS) skipped — OpenMVS does not produce `scene_dense_mesh.mvs`
+  after ReconstructMesh; only the PLY is written. Minor quality impact.
 
-**Tested by existence only (not integration-tested):**
-- OpenMVS binaries run (`DensifyPointCloud --help` prints version/CPU info) but the
-  `reconstruction/dense.py` wrapper has zero tests. The full
-  `InterfaceCOLMAP → DensifyPointCloud → ReconstructMesh → RefineMesh` chain has never
-  been exercised. First real video run is the true integration test.
-- Same applies to `reconstruction/sparse.py` and `reconstruction/undistort.py` — no
-  test coverage for the COLMAP subprocess calls.
+**Recording requirements (learned from first test run):**
+- iPhone Enhanced Stabilisation **must be off** (Settings → Camera → Record Video)
+- Plain white/grey background required — background geometry gets reconstructed and fused
+  into the Poisson mesh with no automatic way to separate it
+- Textured subjects reconstruct far better than uniform-colour objects (black speaker = worst case)
 
 ---
 
