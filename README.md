@@ -131,7 +131,7 @@ source venv/bin/activate
 bash scripts/run_quick_test.sh
 ```
 
-Expected: `All 4 checks PASSED` — imports, config loading, 53 pytest tests, and a pipeline dry-run.
+Expected: `All 4 checks PASSED` — imports, config loading, 62 pytest tests, and a pipeline dry-run.
 
 ---
 
@@ -186,8 +186,9 @@ Available stages: `extraction` → `sparse` → `undistort` → `dense` → `mes
 
 | Config | Frame interval | Max resolution | Refine mesh | Use for |
 |--------|---------------|----------------|-------------|---------|
-| `configs/default.yaml` | every 15 frames | full 4K | yes | Clinical capture |
-| `configs/fast.yaml` | every 30 frames | 1280px max | no | Development / testing |
+| `configs/clinical.yaml` | every 5 frames | full 4K | yes | Final clinical measurements |
+| `configs/default.yaml` | every 15 frames | full 4K | yes | Standard quality runs |
+| `configs/fast.yaml` | every 30 frames | 1280px max | no | Development / quick iteration |
 
 Override individual keys in code:
 ```python
@@ -220,20 +221,25 @@ Tests use fully synthetic data — no COLMAP or OpenMVS installation required.
 | Undistortion (COLMAP) | `reconstruction/undistort.py` | Implemented |
 | Dense MVS (OpenMVS) | `reconstruction/dense.py` | Implemented — requires OpenMVS binary |
 | Mesh post-processing (Open3D 0.19) | `mesh/processing.py` | Implemented |
-| Scale correction | `mesh/scale.py` | **Stub — Month 2** |
+| Scale correction | `mesh/scale.py` | Implemented |
 | Curvature analysis | `landmarks/curvature.py` | **Stub — Month 3** |
 | Landmark detection + GUI | `landmarks/detector.py`, `gui/landmark_gui.py` | **Stub — Month 3** |
 | Cranial indices (CI, CVAI, AP, width) | `measurement/cranial_indices.py` | Implemented |
 | Head circumference (geodesic) | `measurement/cranial_indices.py` | **Stub — Month 3** |
 | PDF report | `measurement/report.py` | **Stub — Month 4** |
 
-**Current verified state (2026-03-17):**
-- 53/53 pytest tests passing
+**Current verified state (2026-03-18):**
+- 62/62 pytest tests passing
 - All 17 module imports OK
 - Pipeline dry-run verified through all 9 stages
+- Stages 1–6 verified end-to-end on real iPhone video (IMG_9840.MOV)
+  - COLMAP: 83/83 images registered, 5,842 points
+  - Dense: 244,201 point cloud
+  - Mesh: 146,649 vertices / 279,736 triangles
+  - Scale: white 16mm die detected, scale factor = 83.9167 mm/unit
 - COLMAP 4.0.1 installed (CPU-only, no CUDA)
 - Python stack: open3d 0.19.0, opencv 4.13.0, numpy 2.4.3, scipy, PyQt5, reportlab
-- OpenMVS: build from source in progress — see notes below
+- OpenMVS: built and installed to `.openmvs/bin/OpenMVS/`
 
 ---
 
@@ -273,13 +279,14 @@ CranioScan3D/
 │   ├── gui/                 PyQt5 interactive landmark placement GUI
 │   └── utils/               Logging, subprocess runner, I/O, validation
 ├── configs/
+│   ├── clinical.yaml        Highest quality (full-res, Poisson depth 10)
 │   ├── default.yaml         Full-quality pipeline parameters
 │   └── fast.yaml            Reduced-quality for rapid iteration
 ├── scripts/
 │   ├── setup_mac.sh         Full macOS Apple Silicon setup script
 │   ├── capture_guide.md     iPhone recording protocol
 │   └── run_quick_test.sh    Smoke test + pytest runner
-├── tests/                   53 pytest tests, synthetic data only
+├── tests/                   62 pytest tests, synthetic data only
 ├── docs/
 │   ├── pipeline-architecture-justification.md
 │   ├── landmark-definitions.md
@@ -298,7 +305,7 @@ CranioScan3D/
 
 See [`docs/pipeline-architecture-justification.md`](docs/pipeline-architecture-justification.md) for full rationale.
 
-- **COLMAP for sparse SfM** — Best-in-class open-source SfM with Apple Silicon support via Homebrew. CPU-only via `--SiftExtraction.use_gpu 0` and `--SiftMatching.use_gpu 0` ([Schönberger & Frahm, 2016](#references); [Schönberger et al., 2016](#references)).
+- **COLMAP for sparse SfM** — Best-in-class open-source SfM with Apple Silicon support via Homebrew. CPU-only via `--FeatureExtraction.use_gpu 0` and `--FeatureMatching.use_gpu 0` (COLMAP 4.x renamed these flags from `SiftExtraction`/`SiftMatching`) ([Schönberger & Frahm, 2016](#references); [Schönberger et al., 2016](#references)).
 - **OpenMVS for dense MVS** — CPU-capable dense reconstruction producing watertight meshes. COLMAP's own dense module requires CUDA and is therefore unavailable on this hardware ([Cernea, 2020](#references)).
 - **Open3D for mesh processing** — Native ARM64 Python wheels; Screened Poisson surface reconstruction ([Kazhdan & Hoppe, 2013](#references)) and volume-preserving Taubin smoothing ([Taubin, 1995](#references)).
 - **SIMPLE_RADIAL camera model** — iPhone video frames share identical intrinsics (`single_camera=1`); SIMPLE_RADIAL handles mild iPhone wide-angle barrel distortion without overparameterisation.
@@ -317,11 +324,13 @@ See [`docs/landmark-definitions.md`](docs/landmark-definitions.md) for clinical 
 
 ## iPhone Capture Protocol
 
-See [`scripts/capture_guide.md`](scripts/capture_guide.md). Key requirements:
-- 40–60 cm distance from subject's head
-- Slow, full 360° equatorial orbit + top-down pass (~100+ sharp frames minimum)
-- Place a known-size calibration object in frame (e.g. 10 mm cube) for scale correction
-- Even diffuse lighting — avoid hard shadows or specular highlights on the scalp
+See [`docs/capture-protocol.md`](docs/capture-protocol.md) for the full protocol. Quick summary:
+- **White swim cap required** for any subject with hair — hair has no trackable texture
+- 30–40 cm distance from subject's head
+- Slow, full 360° equatorial orbit + crown pass (~80–150 sharp frames)
+- **Enhanced Stabilisation must be off** (Settings → Camera → Record Video → Enhanced Stabilisation)
+- Place a **standard 16mm white die** adjacent to the subject for scale correction
+- Even diffuse lighting — no harsh shadows or specular highlights
 
 ---
 

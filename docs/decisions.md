@@ -5,6 +5,57 @@ Most recent entry at the top.
 
 ---
 
+## 2026-03-18 — Scale correction implemented; mesh quality improved
+
+### What was done
+Implemented Stage 6 (scale correction) and improved mesh post-processing quality. All 62 tests pass.
+
+### Scale correction (mesh/scale.py)
+Replaced the `NotImplementedError` stub with a full implementation:
+- Loads the OpenMVS dense point cloud (`scene_dense.ply`)
+- HSV colour segmentation isolates the reference object (presets: white, red, yellow, blue)
+- DBSCAN clustering on the segmented cloud — eps = `bbox_diag * dbscan_eps_fraction` (self-normalising)
+- Cluster filter: ≥50 points, isotropy ≥0.4 (cubic check), implied scale in [50, 2000] mm/unit
+- Selects smallest surviving cluster by AABB volume; computes `scale_factor = reference_size_mm / long_dim`
+- Applies scale to mesh by multiplying all vertex positions
+- On detection failure: saves unscaled mesh with a warning rather than crashing
+
+Verified on IMG_9840.MOV recording: white 16mm die detected from dense cloud, scale factor = 83.9167 mm/unit.
+
+### Mesh post-processing improvements (mesh/processing.py)
+Rewrote MeshProcessor with 6 explicit pipeline steps:
+1. Mesh repair (remove duplicates, degenerate triangles, unreferenced vertices)
+2. Statistical outlier removal (unchanged)
+3. Poisson reconstruction with **adaptive normal radius**: `radius = bbox_diag × normal_radius_fraction` (1% of diagonal). Previously used a hardcoded absolute radius which produced incorrect normals if model units changed.
+4. Density cutoff raised from 0.05 → **0.15** quantile (removes more Poisson hallucination artifacts)
+5. Taubin smoothing (unchanged)
+6. **Non-manifold edge removal** via `remove_non_manifold_edges()` — replaces planned `fill_holes()` which does not exist in Open3D 0.19
+
+### New config: configs/clinical.yaml
+Created for highest-quality clinical runs:
+- `densify_resolution_level: 0` (full 4K depth maps)
+- `poisson_depth: 10`
+- `outlier_std_ratio: 1.5` (tighter)
+- `refine_mesh: true`
+
+### Open3D 0.19 limitation discovered
+`fill_holes()` does not exist in Open3D 0.19. The `fill_holes` and `fill_hole_size` keys were in all three YAML configs causing "Unknown config key" warnings on every run. Removed from all configs and from `MeshConfig`.
+
+### Commits this session
+- `f36968a` — Improve mesh quality: adaptive normals, manifold repair, clinical config
+- `8e58bff` — Remove stale fill_holes keys from all config files
+
+### Test results (IMG_9840 re-run with new mesh processing)
+- Input: 105,193 vertices / 210,253 triangles (from OpenMVS)
+- Outlier removal: 3,120 points removed (3.0%)
+- After Poisson (depth=9): 146,708 vertices / 279,777 triangles
+- Non-manifold tris removed: 13
+- Final: **146,649 vertices / 279,736 triangles**, watertight=False
+- Scale factor confirmed: 83.9167 mm/unit (die detected, 434-point cluster)
+- `watertight=False` expected for this recording — speaker has uncovered regions; a proper head scan with swim cap and full orbit should be closer to watertight
+
+---
+
 ## 2026-03-18 — First full end-to-end pipeline run
 
 ### What was tested

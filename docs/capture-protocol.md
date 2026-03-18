@@ -1,6 +1,6 @@
 # CranioScan3D — Video Capture Protocol
 
-**Version:** 1.0
+**Version:** 1.1 (2026-03-18)
 **Applies to:** CranioScan3D pipeline v0.1.0+
 **Target operator:** Clinician or researcher with no photogrammetry background
 
@@ -27,7 +27,8 @@ Every instruction in this document exists because violating it causes a specific
 | Item | Notes |
 |------|-------|
 | iPhone 12 or later | Any model with 4K video. LiDAR not needed. |
-| Calibration object | A rigid object with a **known size** placed next to the subject. A 10mm cube (3D-printed) is ideal. Must be a vivid colour (bright red or yellow) clearly different from skin tone and background. |
+| White swim cap | **Required for any subject with hair.** Hair has no texture for COLMAP; the swim cap gives the scalp a trackable, uniform surface. A standard latex or silicone swim cap works. |
+| Calibration object | A rigid object with a **known size** placed next to the subject. A standard 16mm die (white) is the default; a 3D-printed cube of known dimension also works. Must be fully stationary relative to the subject. |
 | Plain background | Light grey or white cloth, mat, or foam pad. Non-reflective. No patterns. |
 
 ### Recommended
@@ -72,17 +73,20 @@ Configure these **before** entering the room. Settings changes mid-session waste
 | Cinematic mode | Off | Standard video only |
 | Flash | Off | Creates harsh, moving shadows |
 | Lens | Standard (1×) | Consistent camera model throughout |
-| Video stabilisation | **Off** | Critical — see note below |
+| Enhanced Stabilisation | **Off** | Critical — see note below |
 
 ### Critical: Electronic Image Stabilisation (EIS)
 
-This is the single most important setting. **Electronic stabilisation must be off.**
+This is the single most important setting. **Enhanced Stabilisation must be off.**
 
 EIS works by cropping and warping the image to counteract hand movement. This means consecutive frames are not from a rigid camera — the field of view shifts, rotates, and scales between frames in a way that is invisible to the operator but catastrophic for Structure-from-Motion. COLMAP assumes a pinhole camera with fixed intrinsics; EIS violates this assumption and will either cause the reconstruction to fail entirely or produce a severely distorted mesh.
 
+In testing, this setting caused every frame to be motion-blurred (Laplacian score 8–10 vs a normal score of 100+), producing fewer than 10 usable frames from a full 1,564-frame video. Turning it off brought the video back to normal sharpness.
+
 **How to disable EIS on iPhone:**
-- Settings → Camera → Record Video → **Video Stabilisation → Off** (or Standard)
-- "Standard" uses optical stabilisation (OIS, hardware gimbal) which is acceptable. "Enhanced" or "Cinematic" use electronic/digital stabilisation — these must be off.
+- Settings → Camera → Record Video → **Enhanced Stabilisation → Off**
+- The option labelled "Standard" uses optical stabilisation (hardware gimbal only), which is acceptable. Only "Enhanced" uses electronic/digital warping and must be off.
+- This option is easy to miss — it is nested inside Record Video, not at the top level of Settings → Camera.
 
 ---
 
@@ -119,7 +123,7 @@ The goal is **soft, even, shadow-free illumination** across the entire head surf
 | Overhead downlight only | Top overexposed, sides underexposed |
 | Mirrors or shiny windows in background | Reflections create ghost geometry |
 
-**Hair:** Dark, uniform hair has no texture for COLMAP to track. If the infant has significant hair, place a thin, light-coloured cotton cap over the head to add trackable surface texture. Bald and short-haired infants reconstruct best.
+**Hair:** Dark, uniform hair has no texture for COLMAP to track and causes large holes in the final mesh that cannot be closed in post-processing. A **white swim cap is required** for any infant with visible hair. The swim cap also provides a consistent, repeatable head surface that does not change between visits. Bald and very short-haired infants can be recorded without a cap, but the cap is still recommended for consistency.
 
 ### 3b. Background
 
@@ -131,11 +135,12 @@ The goal is **soft, even, shadow-free illumination** across the entire head surf
 
 The calibration object allows pipeline stage 6 to convert the mesh from arbitrary model units into millimetres.
 
-- Use a **rigid** object with a **precisely known dimension** — a 3D-printed 10mm cube, a 25mm coin, or a 20mm LEGO stud all work
+- Use a **rigid** object with a **precisely known dimension**. The default configuration (`color_hint: white`, `reference_size_mm: 16.0`) is calibrated for a **standard 16mm die (white)**. This is the recommended reference object — cheap, available everywhere, and the correct size and colour for the default config.
+- Alternative objects: a 3D-printed 10mm white cube, a 25mm coin, or any rigid object of known size. If using a non-white object, set `scale.color_hint` in your config to `red`, `yellow`, or `blue`, or override the HSV thresholds manually.
 - Place it **adjacent to the subject**, attached to the head support so it moves with the infant if they move
-- It must be **visible from at least half the orbit angles** — if it disappears behind the head for the full back half, scale correction will fail
-- Choose a **vivid colour** (bright red, orange, or yellow) clearly distinct from skin tone and background — this enables colour-based segmentation during scale correction
+- It must be **visible from at least half the orbit angles** — place it at the side or front of the head support, not behind the head
 - The object must be **completely stationary** relative to the subject during recording
+- Avoid placing it directly against the subject's skin — a small gap ensures the DBSCAN cluster detector can isolate it from the skin point cloud
 
 ---
 
@@ -284,11 +289,17 @@ cranioscan \
   --output-dir data/results/SCN001 \
   --config configs/fast.yaml
 
-# Full quality clinical run:
+# Default full-quality run:
 cranioscan \
   --input data/captures/SCN001/SCN001_20260317.mp4 \
   --output-dir data/results/SCN001 \
   --config configs/default.yaml
+
+# Highest quality clinical run (slower — 30–60 min on Mac Mini M4):
+cranioscan \
+  --input data/captures/SCN001/SCN001_20260317.mp4 \
+  --output-dir data/results/SCN001 \
+  --config configs/clinical.yaml
 
 # Run only extraction + COLMAP to check coverage before full pipeline:
 cranioscan \

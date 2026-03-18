@@ -62,23 +62,28 @@ tests/                 # 53 tests, all synthetic data, no COLMAP needed
 ## Current status (as of 2026-03-18)
 
 **Working (end-to-end verified on real video 2026-03-18):**
-- 53/53 tests passing
-- Stages 1–5 fully exercised: extraction → sparse → undistort → dense → mesh
+- 62/62 tests passing
+- Stages 1–6 fully exercised: extraction → sparse → undistort → dense → mesh → scale
 - COLMAP 83/83 image registration on iPhone video of real object
 - Full OpenMVS chain: InterfaceCOLMAP → DensifyPointCloud → ReconstructMesh
-- Open3D Poisson + Taubin → clean mesh PLY output
+- Open3D mesh processing: repair → outlier removal → adaptive Poisson → Taubin → manifold cleanup
+- Scale correction: white 16mm die detected from dense cloud, scale = 83.9167 mm/unit
 - Pipeline correctly resumes from any stage with `--skip-to`
 
 **Not yet working:**
-- Stages 6–9 (scale, landmarks, measurement, report) are stubs raising `NotImplementedError`
+- Stages 7–9 (landmarks, measurement, report) are stubs raising `NotImplementedError`
 - RefineMesh (stage 4 of OpenMVS) skipped — OpenMVS does not produce `scene_dense_mesh.mvs`
   after ReconstructMesh; only the PLY is written. Minor quality impact.
 
-**Recording requirements (learned from first test run):**
-- iPhone Enhanced Stabilisation **must be off** (Settings → Camera → Record Video)
-- Plain white/grey background required — background geometry gets reconstructed and fused
-  into the Poisson mesh with no automatic way to separate it
-- Textured subjects reconstruct far better than uniform-colour objects (black speaker = worst case)
+**Recording requirements (critical — verified through real testing):**
+- iPhone **Enhanced Stabilisation must be off**: Settings → Camera → Record Video → Enhanced Stabilisation → Off
+  This is the single most impactful setting. When on, it motion-blurs every frame and the pipeline
+  produces fewer than 10 usable frames from a 1,564-frame video.
+- **White swim cap required** for any subject with hair — hair has no SIFT texture and causes
+  large, unrecoverable holes in the mesh
+- Plain white/grey background — background geometry gets reconstructed and fused into the
+  Poisson surface with no way to separate it automatically
+- Textured subjects (skin, fabric, hair cap) reconstruct far better than smooth uniform-colour objects
 
 ---
 
