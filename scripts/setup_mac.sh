@@ -73,52 +73,85 @@ info "Step 3/6: Building OpenMVS from source (CPU-only, Apple Silicon)"
 
 # Install OpenMVS dependencies
 info "  Installing OpenMVS build dependencies..."
-brew install cmake eigen opencv boost cgal glog
+brew install cmake eigen opencv boost cgal glog nanoflann
 
 mkdir -p "$BUILD_DIR"
 
 OPENMVS_SRC="$BUILD_DIR/openMVS"
 if [[ ! -d "$OPENMVS_SRC" ]]; then
-    info "  Cloning OpenMVS repository..."
-    git clone --depth 1 https://github.com/cdcseacave/openMVS.git "$OPENMVS_SRC"
+    info "  Cloning OpenMVS repository (with submodules)..."
+    git clone --recurse-submodules https://github.com/cdcseacave/openMVS.git "$OPENMVS_SRC"
 else
     info "  OpenMVS source already cloned at $OPENMVS_SRC"
+fi
+
+VCG_SRC="$BUILD_DIR/vcglib"
+if [[ ! -d "$VCG_SRC" ]]; then
+    info "  Cloning VCG library..."
+    git clone --depth 1 https://github.com/cnr-isti-vclab/vcglib.git "$VCG_SRC"
+else
+    info "  VCG already cloned at $VCG_SRC"
 fi
 
 OPENMVS_BUILD="$BUILD_DIR/openMVS_build"
 mkdir -p "$OPENMVS_BUILD" "$OPENMVS_INSTALL_DIR"
 
+OPENMVS_OK=true
+
 info "  Configuring CMake (CPU-only build)..."
-cmake -S "$OPENMVS_SRC" -B "$OPENMVS_BUILD" \
+if ! cmake -S "$OPENMVS_SRC" -B "$OPENMVS_BUILD" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$OPENMVS_INSTALL_DIR" \
+    -DCMAKE_PREFIX_PATH=/opt/homebrew \
+    -DBOOST_ROOT=/opt/homebrew \
+    -DBoost_NO_BOOST_CMAKE=ON \
     -DOpenMVS_USE_CUDA=OFF \
     -DOpenMVS_USE_OPENMP=ON \
-    -DVCG_ROOT="$OPENMVS_SRC/libs/VCG" \
+    -DVCG_ROOT="$VCG_SRC" \
     -DCMAKE_OSX_ARCHITECTURES=arm64 \
-    -Wno-dev
+    -Wno-dev; then
+    warn "OpenMVS CMake configure failed — skipping build. Dense reconstruction will not work."
+    warn "Fix the error above and re-run 'make setup' to retry."
+    OPENMVS_OK=false
+fi
 
-info "  Building OpenMVS (this will take 5-15 minutes)..."
-cmake --build "$OPENMVS_BUILD" --config Release --parallel "$(sysctl -n hw.logicalcpu)"
+if [[ "$OPENMVS_OK" == "true" ]]; then
+    info "  Building OpenMVS (this will take 5-15 minutes)..."
+    # LIBRARY_PATH required so linker finds libjxl from Homebrew (transitive OpenCV dep)
+    if ! LIBRARY_PATH=/opt/homebrew/lib cmake --build "$OPENMVS_BUILD" --config Release --parallel "$(sysctl -n hw.logicalcpu)"; then
+        warn "OpenMVS build failed — dense reconstruction will not work."
+        OPENMVS_OK=false
+    fi
+fi
 
-info "  Installing OpenMVS to $OPENMVS_INSTALL_DIR..."
-cmake --install "$OPENMVS_BUILD"
-
-info "  OpenMVS binaries:"
-ls "$OPENMVS_INSTALL_DIR/bin/" 2>/dev/null || ls "$OPENMVS_INSTALL_DIR/" 2>/dev/null
+if [[ "$OPENMVS_OK" == "true" ]]; then
+    info "  Installing OpenMVS to $OPENMVS_INSTALL_DIR..."
+    cmake --install "$OPENMVS_BUILD"
+    info "  OpenMVS binaries:"
+    ls "$OPENMVS_INSTALL_DIR/bin/OpenMVS/" 2>/dev/null || ls "$OPENMVS_INSTALL_DIR/bin/" 2>/dev/null || ls "$OPENMVS_INSTALL_DIR/" 2>/dev/null
+fi
 
 # ── Step 4: Create Python virtual environment ───────────────────────────────
 info "Step 4/6: Setting up Python virtual environment"
 
-if ! command -v python3 &>/dev/null; then
-    die "python3 not found. Install with: brew install python@3.11"
+# Open3D requires Python <=3.12; prefer python3.12 over system python3
+if command -v python3.12 &>/dev/null; then
+    PYTHON_BIN="python3.12"
+elif command -v python3.11 &>/dev/null; then
+    PYTHON_BIN="python3.11"
+elif command -v python3 &>/dev/null; then
+    warn "python3.12/3.11 not found — using $(python3 --version). open3d may not install."
+    warn "Install with: brew install python@3.12"
+    PYTHON_BIN="python3"
+else
+    die "No Python interpreter found. Install with: brew install python@3.12"
 fi
-PYTHON_VERSION=$(python3 --version)
+PYTHON_VERSION=$($PYTHON_BIN --version)
 info "  Python: $PYTHON_VERSION"
 
 if [[ ! -d "$VENV_DIR" ]]; then
     info "  Creating virtual environment at $VENV_DIR"
-    python3 -m venv "$VENV_DIR"
+    $PYTHON_BIN -m venv "$VENV_DIR"
 else
     info "  Virtual environment already exists at $VENV_DIR"
 fi
@@ -141,8 +174,11 @@ deactivate
 info "Step 6/6: Writing .env configuration"
 
 ENV_FILE="$PROJECT_ROOT/.env"
-OPENMVS_BIN_DIR="$OPENMVS_INSTALL_DIR/bin"
-# Fall back to install dir root if bin/ subdir was not created
+# OpenMVS installs binaries to bin/OpenMVS/ subdirectory
+OPENMVS_BIN_DIR="$OPENMVS_INSTALL_DIR/bin/OpenMVS"
+if [[ ! -d "$OPENMVS_BIN_DIR" ]]; then
+    OPENMVS_BIN_DIR="$OPENMVS_INSTALL_DIR/bin"
+fi
 if [[ ! -d "$OPENMVS_BIN_DIR" ]]; then
     OPENMVS_BIN_DIR="$OPENMVS_INSTALL_DIR"
 fi

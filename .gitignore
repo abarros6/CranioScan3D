@@ -25,6 +25,10 @@ venv/
 .venv/
 env/
 
+# Build artifacts and compiled tools
+.build/
+.openmvs/
+
 # Environment
 .env
 

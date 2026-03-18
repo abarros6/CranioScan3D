@@ -252,12 +252,28 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _load_dotenv() -> None:
+    """Load .env file from the project root into os.environ if it exists."""
+    import os
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    if not env_path.exists():
+        return
+    with env_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
+
+
 def main(argv: Optional[list[str]] = None) -> None:
     """CLI entry point for the CranioScan3D pipeline.
 
     Args:
         argv: Argument list (defaults to sys.argv if None).
     """
+    _load_dotenv()
     args = _parse_args(argv)
 
     if args.config.exists():

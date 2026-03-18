@@ -32,7 +32,7 @@ make lint
 - PyQt5 5.15.11
 - reportlab 4.4.10
 
-**OpenMVS:** Not yet built successfully. Build from source required; see `scripts/setup_mac.sh` and the OpenMVS Build Notes in README. Stage 4 (dense MVS) will fail until this is resolved.
+**OpenMVS:** Built and installed to `.openmvs/bin/OpenMVS/`. All 4 required binaries present. Runtime requires `DYLD_LIBRARY_PATH=/opt/homebrew/lib` (set in `.env`, auto-injected by `utils/shell.py`). `.env` is loaded by `main()` on startup via `_load_dotenv()`.
 
 ---
 
@@ -69,8 +69,8 @@ tests/                 # 53 tests, all synthetic data, no COLMAP needed
 - Python venv set up with all dependencies
 
 **Not yet working:**
-- OpenMVS binary not built — dense reconstruction (stage 4) will fail on real data
 - Stages 6–9 (scale, landmarks, measurement, report) are stubs raising `NotImplementedError`
+- Pipeline not yet tested on real video — needs a physical object or head phantom recording
 
 ---
 

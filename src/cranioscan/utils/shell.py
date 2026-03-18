@@ -7,6 +7,7 @@ so they get consistent logging, timeout enforcement, and error reporting.
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -43,6 +44,13 @@ def run_command(
     if cwd:
         logger.debug("  cwd: %s", cwd)
 
+    # Propagate DYLD_LIBRARY_PATH so OpenMVS binaries can find Homebrew libs (libjxl etc.)
+    env = os.environ.copy()
+    dyld = os.environ.get("DYLD_LIBRARY_PATH", "")
+    homebrew_lib = "/opt/homebrew/lib"
+    if homebrew_lib not in dyld:
+        env["DYLD_LIBRARY_PATH"] = f"{homebrew_lib}:{dyld}".rstrip(":")
+
     try:
         result = subprocess.run(
             [str(c) for c in cmd],
@@ -51,6 +59,7 @@ def run_command(
             text=True,
             timeout=timeout,
             check=False,
+            env=env,
         )
     except FileNotFoundError as exc:
         raise RuntimeError(
