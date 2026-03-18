@@ -66,6 +66,34 @@ class MeshConfig:
 
 
 @dataclass
+class ScaleConfig:
+    """Reference-object scale correction parameters.
+
+    A small physical object of known size (e.g. a standard 16mm die) is placed
+    in the scene during capture. Its color is used to segment it from the dense
+    point cloud; its bounding box size is compared to the known physical size to
+    derive a mm/model-unit scale factor.
+
+    color_hint selects a preset HSV threshold. Supported values: white, red,
+    yellow, blue. Override with hsv_* fields for non-standard colors.
+    """
+
+    reference_size_mm: float = 16.0
+    color_hint: str = "white"
+    hsv_hue_center: Optional[float] = None
+    hsv_hue_width: Optional[float] = None
+    hsv_sat_max: float = 0.25
+    hsv_val_min: float = 0.70
+    dbscan_eps_fraction: float = 0.02
+    dbscan_min_samples: int = 10
+    min_cluster_points: int = 50
+    min_isotropy: float = 0.4
+    min_scale_factor: float = 50.0
+    max_scale_factor: float = 2000.0
+    fallback_on_detection_failure: bool = True
+
+
+@dataclass
 class PipelineConfig:
     """Top-level pipeline behaviour settings."""
 
@@ -85,6 +113,7 @@ class Config:
         reconstruction: COLMAP sparse SfM settings.
         dense: OpenMVS dense reconstruction settings.
         mesh: Open3D mesh processing settings.
+        scale: Scale correction settings.
         pipeline: Global pipeline behaviour settings.
     """
 
@@ -92,6 +121,7 @@ class Config:
     reconstruction: ReconstructionConfig = field(default_factory=ReconstructionConfig)
     dense: DenseConfig = field(default_factory=DenseConfig)
     mesh: MeshConfig = field(default_factory=MeshConfig)
+    scale: ScaleConfig = field(default_factory=ScaleConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
 
     @classmethod
@@ -134,6 +164,7 @@ class Config:
             "reconstruction": (cfg.reconstruction, ReconstructionConfig),
             "dense": (cfg.dense, DenseConfig),
             "mesh": (cfg.mesh, MeshConfig),
+            "scale": (cfg.scale, ScaleConfig),
             "pipeline": (cfg.pipeline, PipelineConfig),
         }
 

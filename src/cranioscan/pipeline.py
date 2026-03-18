@@ -207,8 +207,19 @@ def _run_scale(paths: dict, config: Config, dry_run: bool) -> None:
     if dry_run:
         logger.info("[DRY RUN] Would run scale correction")
         return
-    corrector = ScaleCorrector()
-    corrector.correct(paths["mesh"] / "mesh_clean.ply", paths["mesh"] / "mesh_scaled.ply")
+    dense_ply = paths["dense"] / "scene_dense.ply"
+    corrector = ScaleCorrector(config.scale)
+    scale_factor = corrector.correct(
+        input_path=paths["mesh"] / "mesh_clean.ply",
+        output_path=paths["mesh"] / "mesh_scaled.ply",
+        dense_ply_path=dense_ply,
+    )
+    if scale_factor is None:
+        logger.warning(
+            "Scale correction not applied — downstream measurements will be in model units"
+        )
+    else:
+        logger.info("Scale correction applied: %.4f mm/unit", scale_factor)
 
 
 def _run_landmarks(paths: dict, config: Config, dry_run: bool) -> None:

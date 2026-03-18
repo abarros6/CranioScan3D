@@ -28,6 +28,11 @@ mesh:
   smooth_iterations: 3
   smooth_lambda: 0.5
 
+scale:
+  reference_size_mm: 16.0
+  color_hint: "white"
+  fallback_on_detection_failure: true
+
 pipeline:
   stop_on_error: true
   log_level: "INFO"

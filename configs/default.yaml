@@ -28,6 +28,15 @@ mesh:
   smooth_iterations: 5
   smooth_lambda: 0.5
 
+scale:
+  reference_size_mm: 16.0      # Standard die = 16mm; change to match your reference object
+  color_hint: "white"          # Color of reference object: white, red, yellow, blue
+  dbscan_eps_fraction: 0.02    # DBSCAN eps = this fraction of scene bounding box diagonal
+  min_isotropy: 0.4            # Minimum short/long AABB ratio to accept a cluster as cubic
+  min_scale_factor: 50.0       # Minimum plausible mm/model_unit (sanity check)
+  max_scale_factor: 2000.0     # Maximum plausible mm/model_unit (sanity check)
+  fallback_on_detection_failure: true
+
 pipeline:
   stop_on_error: true
   log_level: "INFO"
