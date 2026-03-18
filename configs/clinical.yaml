@@ -45,8 +45,6 @@ mesh:
   normal_radius_fraction: 0.01
   smooth_iterations: 10
   smooth_lambda: 0.5
-  fill_holes: true
-  fill_hole_size: 300           # Fill larger holes (swim cap region, occiput gaps)
 
 scale:
   reference_size_mm: 16.0
