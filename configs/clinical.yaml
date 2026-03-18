@@ -1,0 +1,62 @@
+# CranioScan3D — Clinical quality configuration
+#
+# Use for final measurements on real subjects. Significantly slower than
+# default.yaml but produces the highest quality mesh.
+#
+# Expected runtime on Mac Mini M4:
+#   DensifyPointCloud (level=0, full res): 10–30 min depending on frame count
+#   RefineMesh: 5–15 min
+#   Total pipeline: ~30–60 min
+#
+# Recording requirements for clinical quality:
+#   - White swim cap over any hair (critical — hair causes holes)
+#   - Plain white/grey background sheet or foam mat
+#   - Two soft light sources at 45° (no harsh shadows)
+#   - AE/AF locked before pressing record
+#   - Enhanced Stabilisation OFF
+#   - Slow orbit: one full circle in 20–25 seconds
+
+extraction:
+  frame_interval: 5            # Dense sampling for maximum coverage
+  blur_threshold: 80.0         # Strict blur filter — only sharp frames
+  resize_max_dim: null         # Full 4K resolution
+  output_format: "jpg"
+  jpeg_quality: 95
+
+reconstruction:
+  camera_model: "SIMPLE_RADIAL"
+  single_camera: true
+  exhaustive_matching: true
+  colmap_bin: "colmap"
+  openmvs_bin_dir: ""
+
+dense:
+  densify_resolution_level: 0   # Full resolution depth maps (4× vs level=1)
+  densify_min_resolution: 640
+  densify_max_resolution: 6400
+  reconstruct_mesh: true
+  refine_mesh: true             # Photometric mesh refinement — biggest quality gain
+
+mesh:
+  outlier_nb_neighbors: 30      # More neighbours for robust outlier detection
+  outlier_std_ratio: 1.5        # Tighter ratio — more aggressive outlier removal
+  poisson_depth: 10             # Finer surface detail
+  poisson_density_quantile: 0.15
+  normal_radius_fraction: 0.01
+  smooth_iterations: 10
+  smooth_lambda: 0.5
+  fill_holes: true
+  fill_hole_size: 300           # Fill larger holes (swim cap region, occiput gaps)
+
+scale:
+  reference_size_mm: 16.0
+  color_hint: "white"
+  dbscan_eps_fraction: 0.02
+  min_isotropy: 0.4
+  min_scale_factor: 50.0
+  max_scale_factor: 2000.0
+  fallback_on_detection_failure: true
+
+pipeline:
+  stop_on_error: true
+  log_level: "INFO"

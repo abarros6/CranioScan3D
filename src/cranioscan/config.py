@@ -61,7 +61,9 @@ class MeshConfig:
     outlier_nb_neighbors: int = 20
     outlier_std_ratio: float = 2.0
     poisson_depth: int = 9
-    smooth_iterations: int = 5
+    poisson_density_quantile: float = 0.15
+    normal_radius_fraction: float = 0.01
+    smooth_iterations: int = 10
     smooth_lambda: float = 0.5
 
 

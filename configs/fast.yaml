@@ -25,8 +25,12 @@ mesh:
   outlier_nb_neighbors: 20
   outlier_std_ratio: 2.0
   poisson_depth: 8
-  smooth_iterations: 3
+  poisson_density_quantile: 0.10
+  normal_radius_fraction: 0.01
+  smooth_iterations: 5
   smooth_lambda: 0.5
+  fill_holes: true
+  fill_hole_size: 100
 
 scale:
   reference_size_mm: 16.0
