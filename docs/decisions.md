@@ -5,6 +5,38 @@ Most recent entry at the top.
 
 ---
 
+## 2026-03-17 — Session close: verification gap documented
+
+### What was clarified
+OpenMVS was confirmed to load and print version info (`DensifyPointCloud --help` returns
+v2.4.0, CPU: Apple M4, RAM 16GB). However this is only a binary-presence check.
+
+**The following have never been exercised end-to-end:**
+- `reconstruction/dense.py` — wraps the InterfaceCOLMAP → DensifyPointCloud →
+  ReconstructMesh → RefineMesh chain. Zero test coverage.
+- `reconstruction/sparse.py` — wraps COLMAP feature extraction, exhaustive matching,
+  and incremental mapper. Zero test coverage.
+- `reconstruction/undistort.py` — wraps COLMAP image undistortion. Zero test coverage.
+
+The 53 passing tests cover: frame extraction (mocked), mesh processing (synthetic Open3D
+geometry), cranial indices (pure math), and input validation. No subprocess call is ever
+made in the test suite.
+
+### What needs to happen next
+Record a test video (any ~15 cm round object — melon, ball, foam head) following
+`docs/capture-protocol.md` and run the pipeline through `--stop-after sparse` first
+to confirm COLMAP registers ≥ 80% of images, then through `--stop-after mesh` for a
+full stages 1–5 run.
+
+### Commits this session
+- `1eb8c9f` — OpenMVS build complete: fix linker path, dotenv loading, DYLD_LIBRARY_PATH
+
+### .gitignore
+Added `.build/` and `.openmvs/` exclusions — these were accidentally staged before the
+first commit attempt and had to be cleaned up.
+
+---
+
 ## 2026-03-17 — OpenMVS build completed
 
 ### What was done
