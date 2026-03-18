@@ -112,7 +112,7 @@ bash scripts/run_quick_test.sh
 - **Google-style docstrings** on all public functions and classes
 - **Unimplemented stubs** raise `NotImplementedError("TODO: implement in Month N — description")`
 - **No GPU code** anywhere — this machine has no CUDA
-- All COLMAP subprocess calls must include `--SiftExtraction.use_gpu 0` and `--SiftMatching.use_gpu 0`
+- All COLMAP subprocess calls must include `--FeatureExtraction.use_gpu 0` and `--FeatureMatching.use_gpu 0` (COLMAP 4.x moved these from `SiftExtraction`/`SiftMatching` namespaces)
 - External tool calls go through `utils/shell.py:run_command()` — never call `subprocess` directly
 - Linter: `ruff` — run `make lint` before committing
 

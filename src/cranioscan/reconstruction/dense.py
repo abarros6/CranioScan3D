@@ -67,6 +67,10 @@ class DensePipeline:
             RuntimeError: If any OpenMVS subprocess fails.
         """
         dense_dir.mkdir(parents=True, exist_ok=True)
+        # Resolve to absolute paths — OpenMVS is run with cwd=dense_dir so
+        # relative paths would resolve against the wrong directory.
+        undistorted_dir = undistorted_dir.resolve()
+        dense_dir = dense_dir.resolve()
         scene_mvs = dense_dir / "scene.mvs"
 
         logger.info("Step 1/4: InterfaceCOLMAP — converting to OpenMVS format")

@@ -185,9 +185,20 @@ def _run_mesh(paths: dict, config: Config, dry_run: bool) -> None:
         logger.info("[DRY RUN] Would run Open3D mesh processing")
         return
     processor = MeshProcessor(config.mesh)
-    input_mesh = paths["dense"] / "mesh_refined.ply"
-    if not input_mesh.exists():
-        input_mesh = paths["dense"] / "mesh.ply"
+    # Prefer refined mesh, fall back to reconstructed mesh.
+    # OpenMVS names outputs scene_dense_mesh_refine.ply / scene_dense_mesh.ply.
+    candidates = [
+        paths["dense"] / "scene_dense_mesh_refine.ply",
+        paths["dense"] / "mesh_refined.ply",
+        paths["dense"] / "scene_dense_mesh.ply",
+        paths["dense"] / "mesh.ply",
+    ]
+    input_mesh = next((p for p in candidates if p.exists()), None)
+    if input_mesh is None:
+        raise FileNotFoundError(
+            f"No mesh PLY found in {paths['dense']}. "
+            "Expected scene_dense_mesh.ply or scene_dense_mesh_refine.ply."
+        )
     output_mesh = paths["mesh"] / "mesh_clean.ply"
     processor.process(input_mesh, output_mesh)
 

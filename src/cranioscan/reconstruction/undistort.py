@@ -83,7 +83,12 @@ class Undistorter:
             FileNotFoundError: If no valid sub-model is found.
         """
         sub_dirs = sorted(model_dir.iterdir()) if model_dir.exists() else []
-        candidates = [d for d in sub_dirs if d.is_dir() and (d / "images.txt").exists()]
+        candidates = [
+            d for d in sub_dirs
+            if d.is_dir() and (
+                (d / "images.txt").exists() or (d / "images.bin").exists()
+            )
+        ]
         if not candidates:
             raise FileNotFoundError(
                 f"No valid COLMAP sparse model found in {model_dir}. "
@@ -91,10 +96,15 @@ class Undistorter:
             )
 
         def image_count(d: Path) -> int:
-            lines = (d / "images.txt").read_text().splitlines()
-            # images.txt has 2 lines per image (header lines start with #)
-            data_lines = [ln for ln in lines if ln and not ln.startswith("#")]
-            return len(data_lines) // 2
+            txt = d / "images.txt"
+            if txt.exists():
+                lines = txt.read_text().splitlines()
+                data_lines = [ln for ln in lines if ln and not ln.startswith("#")]
+                return len(data_lines) // 2
+            # Binary format: first 8 bytes are uint64 num_images
+            import struct
+            with open(d / "images.bin", "rb") as f:
+                return struct.unpack("<Q", f.read(8))[0]
 
         best = max(candidates, key=image_count)
         n = image_count(best)

@@ -91,7 +91,7 @@ class SparsePipeline:
             "--image_path", str(image_dir),
             "--ImageReader.camera_model", self.config.camera_model,
             "--ImageReader.single_camera", "1" if self.config.single_camera else "0",
-            "--SiftExtraction.use_gpu", "0",
+            "--FeatureExtraction.use_gpu", "0",
         ]
         run_command(cmd, description="COLMAP feature extraction")
 
@@ -105,7 +105,7 @@ class SparsePipeline:
         cmd = [
             colmap, "exhaustive_matcher",
             "--database_path", str(database_path),
-            "--SiftMatching.use_gpu", "0",
+            "--FeatureMatching.use_gpu", "0",
         ]
         run_command(cmd, description="COLMAP exhaustive matching")
 
