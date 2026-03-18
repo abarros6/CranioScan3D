@@ -72,6 +72,14 @@ tests/                 # 53 tests, all synthetic data, no COLMAP needed
 - Stages 6–9 (scale, landmarks, measurement, report) are stubs raising `NotImplementedError`
 - Pipeline not yet tested on real video — needs a physical object or head phantom recording
 
+**Tested by existence only (not integration-tested):**
+- OpenMVS binaries run (`DensifyPointCloud --help` prints version/CPU info) but the
+  `reconstruction/dense.py` wrapper has zero tests. The full
+  `InterfaceCOLMAP → DensifyPointCloud → ReconstructMesh → RefineMesh` chain has never
+  been exercised. First real video run is the true integration test.
+- Same applies to `reconstruction/sparse.py` and `reconstruction/undistort.py` — no
+  test coverage for the COLMAP subprocess calls.
+
 ---
 
 ## How to run
