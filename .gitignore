@@ -4,6 +4,13 @@ data/frames/
 data/reconstructions/
 data/results/
 
+# Video files (never commit — too large for GitHub)
+*.mov
+*.MOV
+*.mp4
+*.MP4
+*.avi
+
 # 3D mesh formats
 *.ply
 *.obj
