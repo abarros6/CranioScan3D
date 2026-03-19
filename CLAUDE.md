@@ -10,6 +10,16 @@ Master's thesis project. End-to-end pipeline that reconstructs a 3D model of an 
 
 **Hardware:** Mac Mini Apple Silicon (no CUDA, no NVIDIA GPU). Everything must run on CPU.
 
+**Full system (thesis deliverable):**
+1. **CranioCapture iOS app** — records guided orbit video, uploads to API, renders mesh with auto-detected landmarks (touch correction), shows measurements and PDF report in-app.
+2. **CranioScan3D REST API** — FastAPI wrapping the existing pipeline; accepts video, returns mesh PLY + landmarks JSON + PDF report. Runs on Mac Mini.
+3. **Pipeline (this codebase)** — API backend for stages 1–9.
+4. **Desktop GUI (PyQt5)** — dev/debug tool only; not a production deliverable.
+
+```
+[CranioCapture iOS app]  →  [CranioScan3D REST API (FastAPI)]  →  [Pipeline stages 1–9]
+```
+
 ---
 
 ## Environment
@@ -42,20 +52,26 @@ make lint
 src/cranioscan/
   pipeline.py          # CLI orchestrator — start here to understand flow
   config.py            # Config dataclass; all stages read from this
-  extraction/          # Frame extraction (OpenCV) — IMPLEMENTED
-  reconstruction/      # COLMAP sparse + undistort, OpenMVS dense — IMPLEMENTED
-  mesh/                # Open3D mesh cleanup + scale (scale is stub) — IMPLEMENTED
+  extraction/          # Frame extraction (OpenCV) — DONE
+  reconstruction/      # COLMAP sparse + undistort, OpenMVS dense — DONE
+  mesh/                # Open3D mesh cleanup + scale — DONE
   landmarks/           # Curvature + detection — STUBS (Month 3)
-  measurement/         # Cranial indices (CI/CVAI done), report stub — PARTIAL
-  gui/                 # PyQt5 landmark GUI — STUB (Month 3)
+  measurement/         # CI/CVAI/AP/BW done; geodesic HC + report — STUBS (Month 3)
+  gui/                 # PyQt5 landmark GUI — STUB (Month 3, dev tool only)
   utils/               # logging, shell runner, io, validation
+
+api/                   # FastAPI REST API — Month 3–4 (not yet created)
+  app.py               # FastAPI app with session endpoints
+  sessions.py          # Session management, background processing
 
 configs/
   default.yaml         # Full quality
   fast.yaml            # Half resolution, no mesh refinement — use for dev
 
-tests/                 # 53 tests, all synthetic data, no COLMAP needed
+tests/                 # 62 tests, all synthetic data, no COLMAP needed
 ```
+
+**CranioCapture iOS app** lives in a separate Xcode project (Month 4). SwiftUI + SceneKit + URLSession.
 
 ---
 
@@ -70,10 +86,16 @@ tests/                 # 53 tests, all synthetic data, no COLMAP needed
 - Scale correction: white 16mm die detected from dense cloud, scale = 83.9167 mm/unit
 - Pipeline correctly resumes from any stage with `--skip-to`
 
-**Not yet working:**
-- Stages 7–9 (landmarks, measurement, report) are stubs raising `NotImplementedError`
+**Not yet working (Month 3):**
+- Stage 7 (landmarks): curvature analysis + auto-detection — stubs in `landmarks/`
+- Stage 8 (measurement): geodesic head circumference — stub in `measurement/cranial_indices.py`
+- Stage 9 (report): PDF generation — stub in `measurement/report.py`
 - RefineMesh (stage 4 of OpenMVS) skipped — OpenMVS does not produce `scene_dense_mesh.mvs`
   after ReconstructMesh; only the PLY is written. Minor quality impact.
+
+**Not yet started:**
+- REST API (`api/` module) — Month 3–4
+- CranioCapture iOS app — Month 4
 
 **Recording requirements (critical — verified through real testing):**
 - iPhone **Enhanced Stabilisation must be off**: Settings → Camera → Record Video → Enhanced Stabilisation → Off

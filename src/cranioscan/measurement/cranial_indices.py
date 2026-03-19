@@ -156,9 +156,14 @@ def head_circumference_arc(
     """
     raise NotImplementedError(
         "TODO: implement in Month 3 — geodesic head circumference. "
-        "Approach: use trimesh.graph.vertex_adjacency_graph() + Dijkstra's algorithm "
-        "or Open3D's shortest path on mesh to compute geodesic arc length "
-        "between sequential landmarks around the head."
+        "Approach: build adjacency graph from mesh edges with Euclidean edge weights, "
+        "then run Dijkstra between sequential landmark_positions "
+        "(e.g. glabella → eurion_r → opisthocranion → eurion_l → glabella). "
+        "Use scipy.sparse.csgraph.shortest_path (already installed). "
+        "Steps: (1) find nearest vertex index for each landmark position, "
+        "(2) build sparse weight matrix from mesh.triangles edge pairs, "
+        "(3) run shortest_path(graph, method='D', indices=vertex_indices), "
+        "(4) sum the four arc lengths."
     )
 
 

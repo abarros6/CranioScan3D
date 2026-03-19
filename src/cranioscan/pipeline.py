@@ -6,10 +6,10 @@ Entry point for the full pipeline. Runs stages in sequence:
   3. undistort    — COLMAP image undistortion
   4. dense        — OpenMVS dense reconstruction
   5. mesh         — Open3D mesh post-processing
-  6. scale        — Scale correction (stub)
-  7. landmarks    — Landmark detection (stub)
-  8. measurement  — Cranial index computation (stub)
-  9. report       — PDF report generation (stub)
+  6. scale        — Scale correction (white die detection)
+  7. landmarks    — Curvature-based landmark auto-detection (Month 3 stub)
+  8. measurement  — Cranial indices + geodesic circumference (Month 3 stub)
+  9. report       — PDF report generation (Month 3 stub)
 
 CLI usage:
     cranioscan --input video.mp4 --output-dir data/results/session1
@@ -223,15 +223,26 @@ def _run_scale(paths: dict, config: Config, dry_run: bool) -> None:
 
 
 def _run_landmarks(paths: dict, config: Config, dry_run: bool) -> None:
-    raise NotImplementedError("TODO: implement in Month 3 — landmark detection")
+    raise NotImplementedError(
+        "TODO: implement in Month 3 — landmark detection. "
+        "Call CurvatureAnalyzer.analyze() on mesh_scaled.ply, then "
+        "LandmarkDetector.suggest_from_curvature(), save landmarks.json."
+    )
 
 
 def _run_measurement(paths: dict, config: Config, dry_run: bool) -> None:
-    raise NotImplementedError("TODO: implement in Month 3 — cranial measurement")
+    raise NotImplementedError(
+        "TODO: implement in Month 3 — cranial measurement. "
+        "Load landmarks.json, call measurement.cranial_indices.all_measurements(), "
+        "compute geodesic head_circumference_arc(), save measurements.json."
+    )
 
 
 def _run_report(paths: dict, config: Config, dry_run: bool) -> None:
-    raise NotImplementedError("TODO: implement in Month 4 — PDF report generation")
+    raise NotImplementedError(
+        "TODO: implement in Month 3 — PDF report generation. "
+        "Load measurements.json, call ReportGenerator.generate() with ReportData."
+    )
 
 
 def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:

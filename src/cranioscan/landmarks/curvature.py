@@ -80,9 +80,12 @@ class CurvatureAnalyzer:
         """
         raise NotImplementedError(
             "TODO: implement in Month 3 — principal curvature computation. "
-            "Approach: use trimesh.curvature.discrete_principal_curvatures_and_normals() "
-            "or implement via vertex covariance matrices from the 1-ring neighborhood. "
-            "Then compute shape index and find local extrema as candidates."
+            "Approach: for each vertex, gather 1-ring neighbours from mesh.triangles; "
+            "centre their positions, build 3×3 covariance matrix, eigen-decompose; "
+            "k1=largest eigenvalue, k2=second eigenvalue (both in mm⁻¹). "
+            "Then call self.shape_index(k1, k2) and threshold at self.dome_threshold "
+            "to find candidate_indices (top self.candidate_count by shape_index score). "
+            "No new dependencies — Open3D mesh gives vertices + triangles directly."
         )
 
     @staticmethod

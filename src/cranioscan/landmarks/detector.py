@@ -120,9 +120,14 @@ class LandmarkDetector:
         """
         raise NotImplementedError(
             "TODO: implement in Month 3 — curvature-based landmark suggestion. "
-            "Strategy: (1) Use shape index to find convex extrema candidates, "
-            "(2) Apply anatomical priors (glabella=anterior, opisthocranion=posterior), "
-            "(3) Return suggestions for user confirmation in GUI."
+            "Strategy per landmark (vertices array is mesh.vertices, SI = curvature_result.shape_index):\n"
+            "  GLABELLA:       SI > 0.7 candidates → most anterior (max Y or min Z depending on orientation)\n"
+            "  OPISTHOCRANION: SI > 0.7 candidates → most posterior; maximises distance from glabella\n"
+            "  EURION_L:       SI > 0.4 candidates → leftmost (min X)\n"
+            "  EURION_R:       SI > 0.4 candidates → rightmost (max X)\n"
+            "  VERTEX:         SI > 0.7 candidates → highest (max Z or Y)\n"
+            "All suggestions get confidence = normalised SI score. "
+            "Return dict[LandmarkId, np.ndarray] of suggested positions for API/GUI."
         )
 
     def place_landmark(

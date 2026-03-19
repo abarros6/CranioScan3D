@@ -3,7 +3,7 @@
 Generates a clinical summary PDF containing measurement values, reference
 ranges, mesh visualization screenshots, and capture metadata.
 
-TODO (Month 4): Implement using ReportLab. The interface is defined here.
+TODO (Month 3): Implement using ReportLab. The interface is defined here.
 """
 
 from __future__ import annotations
@@ -70,10 +70,11 @@ class ReportGenerator:
             NotImplementedError: Not yet implemented (Month 4).
         """
         raise NotImplementedError(
-            "TODO: implement in Month 4 — PDF report generation with ReportLab. "
+            "TODO: implement in Month 3 — PDF report generation with ReportLab. "
             "Steps: (1) create ReportLab SimpleDocTemplate, "
-            "(2) build measurement table with clinical reference ranges, "
-            "(3) embed mesh screenshot if provided, "
-            "(4) add interpretation summary per measurement, "
-            "(5) save to output_dir / f'{data.subject_id}_report.pdf'."
+            "(2) build measurements table with values + normal ranges + flags "
+            "    (CI normal 75–85, CVAI normal <3.5%, HC normal by age), "
+            "(3) embed mesh screenshot (data.mesh_screenshot_path) if provided, "
+            "(4) add subject_id, capture_date header, "
+            "(5) save to output_dir / f'{data.subject_id}_report.pdf' and return path."
         )
