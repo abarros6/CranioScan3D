@@ -4,12 +4,18 @@ data/frames/
 data/reconstructions/
 data/results/
 
-# Video files (never commit — too large for GitHub)
-*.mov
-*.MOV
-*.mp4
-*.MP4
-*.avi
+# Video / large media files (never commit — exceed GitHub 100MB limit)
+*.[Mm][Oo][Vv]
+*.[Mm][Pp]4
+*.[Aa][Vv][Ii]
+*.[Mm][Kk][Vv]
+*.[Mm][Tt][Ss]
+*.[Mm]2[Tt][Ss]
+*.[Ww][Mm][Vv]
+*.[Ff][Ll][Vv]
+*.[Ww][Ee][Bb][Mm]
+*.[Mm][Pp][Ee][Gg]
+*.[Mm][Pp][Gg]
 
 # 3D mesh formats
 *.ply
