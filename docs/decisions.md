@@ -1,5 +1,55 @@
 # CranioScan3D — Decision & Session Log
 
+---
+
+## 2026-03-19 — Quality improvements, bug fixes, scale correction implemented
+
+### Reconstruction quality improvements
+- `configs/default.yaml`: camera model changed from `SIMPLE_RADIAL` to `OPENCV`
+  (k1, k2, p1, p2) — better models iPhone lens distortion; `frame_interval` 15→6
+  (~5 fps vs 2 fps); `densify_resolution_level` 1→0 (full resolution);
+  `poisson_depth` 9→11; `smooth_iterations` 5→3; `smooth_lambda` 0.5→0.3.
+- `configs/fast.yaml`: camera model `SIMPLE_RADIAL`→`RADIAL` (2 radial coefficients).
+- `reconstruction/sparse.py`: added SIFT tuning (`max_num_features 16384`,
+  `num_octaves 4`, `peak_threshold 0.004`), matcher flags (`max_ratio 0.8`,
+  `cross_check 1`, `max_num_matches 32768`), and mapper BA flags
+  (`ba_refine_focal_length`, `ba_refine_extra_params`, `ba_global_max_num_iterations 75`).
+- `reconstruction/dense.py`: added `--number-views 8 --number-views-fuse 3` to
+  `DensifyPointCloud`; both glob fallbacks now use `sorted()` for determinism.
+- `config.py`: added `densify_number_views` and `densify_number_views_fuse` to
+  `DenseConfig`; added `ScaleConfig` dataclass; overrides dict now guards with
+  `hasattr` before `setattr`.
+
+### Bug fixes
+- `frame_extractor.py`: `cv2.imwrite` return value now checked; `VideoCapture`
+  wrapped in `try/finally`; zero-frames-extracted now raises `RuntimeError`.
+- `pipeline.py`: "Stage completed" no longer logged after a failure.
+- `cranial_indices.py`: `cranial_vault_asymmetry_index` guard fixed to check both
+  diagonals (was only checking pre-sort `diagonal_1`); `cephalic_index` now
+  validates `bitemporal_width >= 0`.
+- `undistort.py`: `image_count` uses `ln.strip()` to exclude whitespace-only lines.
+- `mesh/processing.py`: empty-mesh checks added after `read_triangle_mesh` and
+  after Poisson density removal.
+- `validation.py`: removed `except ImportError` swallowing OpenCV (hard dependency).
+- Tests: four tests using `cv2.VideoWriter` with `mp4v` codec (silently fails on
+  macOS) replaced with a `write_test_video()` helper using `MJPG`+`.avi` codec,
+  then renamed to the target extension. `cv2.VideoCapture` reads by content.
+
+### Stage 6 — Scale correction implemented
+- `mesh/scale.py`: full implementation of `ScaleCorrector.correct()`.
+  Detection: vectorised RGB→HSV, HSV colour threshold, geometric-mean AABB size.
+  Scaling: `mesh.scale(factor, center=(0,0,0))`. Writes `mesh_scaled.json` sidecar.
+  Falls back gracefully if cube not detected.
+- `pipeline.py`: `_run_scale` now searches for the coloured raw OpenMVS PLY
+  (`scene_dense_mesh_refine.ply` → `scene_dense_mesh.ply` → `scene_dense.ply`)
+  and passes it as `colored_source_path`.
+- 9 new tests; total now 62/62 passing.
+
+### Next session priorities
+1. Stage 7: curvature analysis (Koenderink shape index) + landmark detection
+2. Stage 8: geodesic head circumference via Dijkstra on mesh graph
+3. First real video run to validate stages 1–6 end-to-end
+
 Append-only log of architectural decisions, bugs found, things tried, and session summaries.
 Most recent entry at the top.
 

@@ -7,6 +7,7 @@ import pytest
 
 from cranioscan.config import ExtractionConfig
 from cranioscan.extraction.frame_extractor import FrameExtractor
+from tests.conftest import write_test_video
 
 
 def test_laplacian_variance_sharp_vs_blurry(sharp_frame, blurry_frame):
@@ -66,17 +67,8 @@ def test_resize_portrait_orientation():
 
 def test_extract_creates_output_files(tmp_path):
     """Extract should write frames to output directory from a real video."""
-    import cv2
-
-    # Create a minimal synthetic video
-    video_path = tmp_path / "test.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(video_path), fourcc, 30.0, (320, 240))
-    rng = np.random.default_rng(42)
-    for _ in range(60):
-        frame = rng.integers(0, 256, (240, 320, 3), dtype=np.uint8)
-        writer.write(frame)
-    writer.release()
+    video_path = tmp_path / "test.avi"
+    write_test_video(video_path, num_frames=60, seed=42)
 
     config = ExtractionConfig(frame_interval=10, blur_threshold=50.0)
     extractor = FrameExtractor(config)
@@ -96,16 +88,8 @@ def test_extract_raises_on_missing_video(tmp_path):
 
 def test_extract_returns_paths_list(tmp_path):
     """Extract should return a list type (even if empty)."""
-    import cv2
-
-    video_path = tmp_path / "test.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(video_path), fourcc, 30.0, (320, 240))
-    rng = np.random.default_rng(7)
-    for _ in range(30):
-        frame = rng.integers(0, 256, (240, 320, 3), dtype=np.uint8)
-        writer.write(frame)
-    writer.release()
+    video_path = tmp_path / "test.avi"
+    write_test_video(video_path, num_frames=30, seed=7)
 
     config = ExtractionConfig(frame_interval=10, blur_threshold=50.0)
     extractor = FrameExtractor(config)

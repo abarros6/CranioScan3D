@@ -91,7 +91,10 @@ class SparsePipeline:
             "--image_path", str(image_dir),
             "--ImageReader.camera_model", self.config.camera_model,
             "--ImageReader.single_camera", "1" if self.config.single_camera else "0",
-            "--FeatureExtraction.use_gpu", "0",
+            "--FeatureExtraction.use_gpu", "0",             # COLMAP 4.x namespace (verified)
+            "--SiftExtraction.max_num_features", "16384",   # default 8192 — more features from 4K frames
+            "--SiftExtraction.num_octaves", "4",
+            "--SiftExtraction.peak_threshold", "0.004",     # default 0.02 — lower = more keypoints
         ]
         run_command(cmd, description="COLMAP feature extraction")
 
@@ -105,7 +108,10 @@ class SparsePipeline:
         cmd = [
             colmap, "exhaustive_matcher",
             "--database_path", str(database_path),
-            "--FeatureMatching.use_gpu", "0",
+            "--FeatureMatching.use_gpu", "0",               # COLMAP 4.x namespace (verified)
+            "--SiftMatching.max_ratio", "0.8",
+            "--SiftMatching.cross_check", "1",
+            "--SiftMatching.max_num_matches", "32768",
         ]
         run_command(cmd, description="COLMAP exhaustive matching")
 
@@ -129,5 +135,8 @@ class SparsePipeline:
             "--database_path", str(database_path),
             "--image_path", str(image_dir),
             "--output_path", str(model_dir),
+            "--Mapper.ba_refine_focal_length", "1",
+            "--Mapper.ba_refine_extra_params", "1",         # refine distortion coefficients during BA
+            "--Mapper.ba_global_max_num_iterations", "75",  # default 50 — more BA iterations
         ]
         run_command(cmd, description="COLMAP incremental mapper")

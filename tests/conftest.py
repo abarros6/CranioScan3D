@@ -14,6 +14,29 @@ import open3d as o3d
 import pytest
 
 
+def write_test_video(path: Path, num_frames: int, seed: int = 0) -> None:
+    """Write a minimal synthetic video to *path* using a codec that works on macOS.
+
+    Uses MJPG (Motion JPEG) written to a temporary .avi file which is then
+    renamed to the requested path.  cv2.VideoCapture detects format by content,
+    so the renamed file is readable regardless of extension.
+
+    Args:
+        path: Destination path for the video file.
+        num_frames: Number of frames to write.
+        seed: RNG seed for reproducibility.
+    """
+    avi_tmp = path.with_suffix(".avi")
+    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+    writer = cv2.VideoWriter(str(avi_tmp), fourcc, 30.0, (320, 240))
+    rng = np.random.default_rng(seed)
+    for _ in range(num_frames):
+        frame = rng.integers(0, 256, (240, 320, 3), dtype=np.uint8)
+        writer.write(frame)
+    writer.release()
+    avi_tmp.rename(path)
+
+
 @pytest.fixture
 def tmp_output_dir(tmp_path: Path) -> Path:
     """Provide a temporary output directory."""

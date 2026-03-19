@@ -8,7 +8,7 @@ extraction:
   jpeg_quality: 85
 
 reconstruction:
-  camera_model: "SIMPLE_RADIAL"
+  camera_model: "RADIAL"      # 2 radial coefficients — better than SIMPLE_RADIAL, stable with fewer frames
   single_camera: true
   exhaustive_matching: true
   colmap_bin: "colmap"

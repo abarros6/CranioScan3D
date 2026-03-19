@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import open3d as o3d
 import pytest
@@ -103,6 +105,7 @@ def test_compute_scale_factor_result_positive():
 # ---------------------------------------------------------------------------
 
 def test_apply_scale_changes_mesh_size():
+    """apply_scale should scale mesh extents by the given factor."""
     mesh = o3d.geometry.TriangleMesh.create_sphere(radius=1.0)
     original_extent = np.asarray(mesh.get_axis_aligned_bounding_box().get_extent())
     scaled = ScaleCorrector.apply_scale(mesh, scale_factor=2.0)
@@ -111,10 +114,13 @@ def test_apply_scale_changes_mesh_size():
 
 
 def test_apply_scale_identity():
+    """apply_scale with factor=1.0 should leave mesh vertices unchanged."""
     mesh = o3d.geometry.TriangleMesh.create_box(width=5.0, height=3.0, depth=2.0)
-    original_center = mesh.get_center()
+    original_verts = np.asarray(mesh.vertices).copy()
+
     ScaleCorrector.apply_scale(mesh, scale_factor=1.0)
-    np.testing.assert_allclose(mesh.get_center(), original_center, atol=1e-6)
+
+    np.testing.assert_allclose(np.asarray(mesh.vertices), original_verts, atol=1e-6)
 
 
 def test_apply_scale_half():

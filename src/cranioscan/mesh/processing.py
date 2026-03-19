@@ -65,6 +65,11 @@ class MeshProcessor:
 
         logger.info("Loading mesh: %s", input_path)
         mesh = o3d.io.read_triangle_mesh(str(input_path))
+        if len(mesh.vertices) == 0:
+            raise RuntimeError(
+                f"Mesh loaded from {input_path} has 0 vertices — "
+                "file may be corrupt or in an unsupported format."
+            )
         logger.info(
             "Loaded mesh: %d vertices, %d triangles",
             len(mesh.vertices),
@@ -118,6 +123,12 @@ class MeshProcessor:
         vertices_to_remove = densities_np < density_threshold
         n_removed = int(vertices_to_remove.sum())
         mesh_poisson.remove_vertices_by_mask(vertices_to_remove)
+        if len(mesh_poisson.vertices) == 0:
+            raise RuntimeError(
+                "Poisson density removal eliminated all vertices. "
+                "The reconstruction may be too sparse — try a lower poisson_depth "
+                "or capture more frames."
+            )
         logger.info(
             "After Poisson: %d vertices, %d triangles (removed %d low-density verts, "
             "density_q%.0f=%.4f)",

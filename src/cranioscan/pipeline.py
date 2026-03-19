@@ -130,19 +130,25 @@ def run_pipeline(
     for stage in active_stages:
         logger.info("--- Stage: %s ---", stage)
         t0 = time.perf_counter()
+        stage_failed = False
         try:
             stage_fns[stage]()
         except NotImplementedError as exc:
             logger.warning("Stage '%s' not yet implemented: %s", stage, exc)
+            stage_failed = True
         except Exception as exc:
             logger.error("Stage '%s' failed: %s", stage, exc, exc_info=True)
+            stage_failed = True
             if config.pipeline.stop_on_error:
                 logger.error(
                     "Aborting pipeline. Fix the error above and re-run with --skip-to %s", stage
                 )
                 sys.exit(1)
         elapsed = time.perf_counter() - t0
-        logger.info("Stage '%s' completed in %.1fs", stage, elapsed)
+        if not stage_failed:
+            logger.info("Stage '%s' completed in %.1fs", stage, elapsed)
+        else:
+            logger.info("Stage '%s' failed after %.1fs", stage, elapsed)
 
     total = time.perf_counter() - total_start
     logger.info("=== Pipeline finished in %.1fs ===", total)
@@ -203,16 +209,42 @@ def _run_mesh(paths: dict, config: Config, dry_run: bool) -> None:
     processor.process(input_mesh, output_mesh)
 
 
+def _find_dense_ply(dense_dir: Path) -> Optional[Path]:
+    """Find the dense point cloud PLY from OpenMVS DensifyPointCloud output.
+
+    Searches for the dense point cloud (scene_dense.ply) first as that is
+    the primary output of DensifyPointCloud and retains per-point colours from
+    image projection. Falls back to mesh outputs if the point cloud is absent.
+
+    Args:
+        dense_dir: Directory produced by the dense reconstruction stage.
+
+    Returns:
+        Path to the best available dense PLY, or None.
+    """
+    for name in ("scene_dense.ply", "scene_dense_mesh_refine.ply", "scene_dense_mesh.ply"):
+        candidate = dense_dir / name
+        if candidate.exists():
+            logger.debug("Found dense PLY for scale correction: %s", candidate.name)
+            return candidate
+    logger.warning(
+        "No dense PLY found in %s — scale correction will use scene_dense.ply path "
+        "and log a fallback warning.",
+        dense_dir,
+    )
+    return None
+
+
 def _run_scale(paths: dict, config: Config, dry_run: bool) -> None:
     if dry_run:
         logger.info("[DRY RUN] Would run scale correction")
         return
-    dense_ply = paths["dense"] / "scene_dense.ply"
+    dense_ply = _find_dense_ply(paths["dense"])
     corrector = ScaleCorrector(config.scale)
     scale_factor = corrector.correct(
         input_path=paths["mesh"] / "mesh_clean.ply",
         output_path=paths["mesh"] / "mesh_scaled.ply",
-        dense_ply_path=dense_ply,
+        dense_ply_path=dense_ply if dense_ply is not None else paths["dense"] / "scene_dense.ply",
     )
     if scale_factor is None:
         logger.warning(

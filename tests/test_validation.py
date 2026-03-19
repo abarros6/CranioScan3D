@@ -6,10 +6,10 @@ import shutil
 from pathlib import Path
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 
 from cranioscan.config import Config
+from tests.conftest import write_test_video
 from cranioscan.utils.validation import (
     SUPPORTED_VIDEO_EXTENSIONS,
     _check_binary,
@@ -70,30 +70,16 @@ def test_check_binary_absolute_path_exists(tmp_path):
 
 def test_validate_input_video_valid_mp4(tmp_path):
     """validate_input_video should pass for a valid .mp4 with sufficient frames."""
-    import cv2
-
     video_path = tmp_path / "valid.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(video_path), fourcc, 30.0, (320, 240))
-    rng = np.random.default_rng(0)
-    for _ in range(60):
-        writer.write(rng.integers(0, 256, (240, 320, 3), dtype=np.uint8))
-    writer.release()
+    write_test_video(video_path, num_frames=60, seed=0)
     # Should not raise
     validate_input_video(video_path)
 
 
 def test_validate_input_video_too_few_frames(tmp_path):
     """validate_input_video should raise ValueError for a video with too few frames."""
-    import cv2
-
     video_path = tmp_path / "short.mp4"
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(video_path), fourcc, 30.0, (320, 240))
-    rng = np.random.default_rng(1)
-    for _ in range(10):  # Way below MIN_FRAME_COUNT=30
-        writer.write(rng.integers(0, 256, (240, 320, 3), dtype=np.uint8))
-    writer.release()
+    write_test_video(video_path, num_frames=10, seed=1)  # Way below MIN_FRAME_COUNT=30
 
     with pytest.raises(ValueError, match="frames"):
         validate_input_video(video_path)

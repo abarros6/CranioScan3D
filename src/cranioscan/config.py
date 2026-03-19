@@ -50,6 +50,8 @@ class DenseConfig:
     densify_resolution_level: int = 1
     densify_min_resolution: int = 640
     densify_max_resolution: int = 3200
+    densify_number_views: int = 8
+    densify_number_views_fuse: int = 3
     reconstruct_mesh: bool = True
     refine_mesh: bool = True
 
@@ -187,6 +189,9 @@ class Config:
                     logger.warning("Cannot apply override '%s' — skipping", dotted_key)
                     continue
                 obj, _ = section_map[parts[0]]
+                if not hasattr(obj, parts[1]):
+                    logger.warning("Unknown override key %s — skipping", dotted_key)
+                    continue
                 setattr(obj, parts[1], value)
 
         # Resolve colmap_bin / openmvs_bin_dir from environment if not set

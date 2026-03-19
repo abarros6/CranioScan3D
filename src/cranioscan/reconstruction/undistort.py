@@ -99,7 +99,8 @@ class Undistorter:
             txt = d / "images.txt"
             if txt.exists():
                 lines = txt.read_text().splitlines()
-                data_lines = [ln for ln in lines if ln and not ln.startswith("#")]
+                # Use strip() so whitespace-only lines are excluded consistently
+                data_lines = [ln for ln in lines if ln.strip() and not ln.startswith("#")]
                 return len(data_lines) // 2
             # Binary format: first 8 bytes are uint64 num_images
             import struct

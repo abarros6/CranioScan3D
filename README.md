@@ -184,11 +184,11 @@ Available stages: `extraction` → `sparse` → `undistort` → `dense` → `mes
 
 ### Configuration
 
-| Config | Frame interval | Max resolution | Refine mesh | Use for |
-|--------|---------------|----------------|-------------|---------|
-| `configs/clinical.yaml` | every 5 frames | full 4K | yes | Final clinical measurements |
-| `configs/default.yaml` | every 15 frames | full 4K | yes | Standard quality runs |
-| `configs/fast.yaml` | every 30 frames | 1280px max | no | Development / quick iteration |
+| Config | Frame interval | Camera model | Dense resolution | Poisson depth | Refine mesh | Use for |
+|--------|---------------|--------------|-----------------|---------------|-------------|---------|
+| `configs/clinical.yaml` | every 5 frames | OPENCV | full 4K | 11 | yes | Final clinical measurements |
+| `configs/default.yaml` | every 6 frames | OPENCV (k1,k2,p1,p2) | full 4K | 11 | yes | Standard quality runs |
+| `configs/fast.yaml` | every 30 frames | RADIAL | 1280px max | 8 | no | Development / quick iteration |
 
 Override individual keys in code:
 ```python
@@ -221,14 +221,14 @@ Tests use fully synthetic data — no COLMAP or OpenMVS installation required.
 | Undistortion (COLMAP) | `reconstruction/undistort.py` | Implemented |
 | Dense MVS (OpenMVS) | `reconstruction/dense.py` | Implemented — requires OpenMVS binary |
 | Mesh post-processing (Open3D 0.19) | `mesh/processing.py` | Implemented |
-| Scale correction | `mesh/scale.py` | Implemented |
+| Scale correction | `mesh/scale.py` | Implemented — DBSCAN-based colour detection |
 | Curvature analysis | `landmarks/curvature.py` | **Stub — Month 3** |
 | Landmark detection + GUI | `landmarks/detector.py`, `gui/landmark_gui.py` | **Stub — Month 3** |
 | Cranial indices (CI, CVAI, AP, width) | `measurement/cranial_indices.py` | Implemented |
 | Head circumference (geodesic) | `measurement/cranial_indices.py` | **Stub — Month 3** |
 | PDF report | `measurement/report.py` | **Stub — Month 4** |
 
-**Current verified state (2026-03-18):**
+**Current verified state (2026-03-19):**
 - 62/62 pytest tests passing
 - All 17 module imports OK
 - Pipeline dry-run verified through all 9 stages

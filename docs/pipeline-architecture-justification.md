@@ -154,17 +154,37 @@ spatial resolution) for quicker iteration.
 
 ---
 
-## 7. Scale Correction: Reference Object (Month 2)
+## 7. Scale Correction: Reference Object
 
 ### Choice
-Physical calibration cube (10mm) placed in the capture scene.
+Physical calibration cube (10mm) placed in the capture scene. Detected by
+HSV colour thresholding on the raw OpenMVS vertex colours.
+
+### Implementation
+`mesh/scale.py` — `ScaleCorrector.correct()`:
+1. Load the raw coloured OpenMVS mesh (e.g. `scene_dense_mesh.ply`) which
+   retains per-vertex RGB from image projection.
+2. Convert RGB to HSV (vectorised NumPy, no OpenCV dependency).
+3. Threshold by hue (default 10–40°, orange-red), saturation ≥ 0.50,
+   value ≥ 0.30.
+4. Require ≥ 50 matched vertices to accept detection.
+5. Compute the geometric mean of the three AABB dimensions as the detected
+   cube size — robust to partial face occlusion of the cube.
+6. `scale_factor = reference_size_mm / detected_size`
+7. Apply `mesh.scale(factor, center=(0,0,0))` to the Poisson-cleaned mesh.
+8. Write `mesh_scaled.ply` and `mesh_scaled.json` (scale factor sidecar).
+9. If detection fails, copy the unscaled mesh so the pipeline continues.
 
 ### Rationale
 - SfM reconstruction is inherently scale-ambiguous: COLMAP recovers structure
   up to an unknown scale factor. A known-size physical object in the scene
   allows unambiguous metric scale recovery.
-- A brightly coloured 3D-printed cube is easy to segment in the point cloud or
-  mesh using colour thresholding.
+- A brightly coloured 3D-printed cube is easy to segment by colour. The raw
+  OpenMVS mesh retains vertex colours from image projection; the later
+  Poisson-reconstructed mesh does not — hence detection runs on the raw mesh.
+- Geometric mean of AABB dimensions chosen over any single axis because the
+  cube may be partially occluded or the colour mask may not cover all faces
+  equally.
 - Alternative (marker-based scale): ArUco marker with known side length. Also
   viable, but requires the marker to be flat and visible — harder to attach to
   an infant's head without disturbing the capture.

@@ -1,34 +1,36 @@
 # CranioScan3D — Default pipeline configuration (full quality)
 
 extraction:
-  frame_interval: 15          # Extract every Nth frame
-  blur_threshold: 100.0       # Laplacian variance threshold; below = blurry
+  frame_interval: 6           # Extract every Nth frame (~5 fps at 30fps, ~10 fps at 60fps)
+  blur_threshold: 120.0       # Laplacian variance threshold; below = blurry (stricter — more frames to spare)
   resize_max_dim: null        # No resize — use full resolution
   output_format: "jpg"
-  jpeg_quality: 95
+  jpeg_quality: 97
 
 reconstruction:
-  camera_model: "SIMPLE_RADIAL"
+  camera_model: "OPENCV"      # k1,k2,p1,p2 — models iPhone lens distortion accurately
   single_camera: true
-  exhaustive_matching: true   # For small datasets (<200 images)
+  exhaustive_matching: true   # For small datasets (<300 images)
   colmap_bin: "colmap"
   openmvs_bin_dir: ""         # Empty = use PATH
 
 dense:
-  densify_resolution_level: 1    # 0=full, 1=half, 2=quarter
-  densify_min_resolution: 640
-  densify_max_resolution: 3200
+  densify_resolution_level: 0    # 0=full, 1=half, 2=quarter
+  densify_min_resolution: 1280
+  densify_max_resolution: 4096   # Matches iPhone 4K long edge
+  densify_number_views: 8        # Neighbor views for depth estimation (default 5)
+  densify_number_views_fuse: 3   # Min views for point fusion (default 3)
   reconstruct_mesh: true
   refine_mesh: true
 
 mesh:
   outlier_nb_neighbors: 20
   outlier_std_ratio: 2.0
-  poisson_depth: 9
-  poisson_density_quantile: 0.15   # Remove bottom 15% low-density Poisson verts
-  normal_radius_fraction: 0.01     # Normal estimation radius = 1% of bbox diagonal
-  smooth_iterations: 10
-  smooth_lambda: 0.5
+  poisson_depth: 11              # ~0.5mm feature resolution at head scale
+  poisson_density_quantile: 0.15 # Remove bottom 15% low-density Poisson verts
+  normal_radius_fraction: 0.01   # Normal estimation radius = 1% of bbox diagonal
+  smooth_iterations: 3           # Less smoothing preserves clinical surface detail
+  smooth_lambda: 0.3             # Gentler Taubin pass
 
 scale:
   reference_size_mm: 16.0      # Standard die = 16mm; change to match your reference object

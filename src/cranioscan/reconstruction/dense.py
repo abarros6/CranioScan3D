@@ -82,7 +82,7 @@ class DensePipeline:
 
         if not dense_mvs.exists():
             # OpenMVS may name output differently; search for it
-            candidates = list(dense_dir.glob("*dense*.mvs"))
+            candidates = sorted(dense_dir.glob("*dense*.mvs"))
             if candidates:
                 dense_mvs = candidates[0]
             else:
@@ -131,6 +131,8 @@ class DensePipeline:
             "--resolution-level", str(self.dense_config.densify_resolution_level),
             "--min-resolution", str(self.dense_config.densify_min_resolution),
             "--max-resolution", str(self.dense_config.densify_max_resolution),
+            "--number-views", str(self.dense_config.densify_number_views),
+            "--number-views-fuse", str(self.dense_config.densify_number_views_fuse),
         ]
         run_command(cmd, cwd=dense_dir, description="DensifyPointCloud")
 
@@ -155,7 +157,7 @@ class DensePipeline:
             dense_dir: Working directory.
         """
         if not mesh_mvs.exists():
-            candidates = list(dense_dir.glob("*mesh*.mvs"))
+            candidates = sorted(dense_dir.glob("*mesh*.mvs"))
             if candidates:
                 mesh_mvs = candidates[0]
             else:

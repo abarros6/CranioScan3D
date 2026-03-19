@@ -48,6 +48,8 @@ def cephalic_index(
     """
     if ap_length <= 0:
         raise ValueError(f"ap_length must be positive, got {ap_length}")
+    if bitemporal_width < 0:
+        raise ValueError(f"bitemporal_width must be non-negative, got {bitemporal_width}")
     ci = (bitemporal_width / ap_length) * 100.0
     logger.debug(
         "Cephalic Index: %.1f (width=%.1fmm, AP=%.1fmm)", ci, bitemporal_width, ap_length
@@ -81,8 +83,10 @@ def cranial_vault_asymmetry_index(
         >>> cranial_vault_asymmetry_index(diagonal_1=180.0, diagonal_2=172.0)
         4.44...
     """
-    if diagonal_1 <= 0:
-        raise ValueError(f"diagonal_1 must be positive, got {diagonal_1}")
+    if diagonal_1 <= 0 or diagonal_2 <= 0:
+        raise ValueError(
+            f"Both diagonals must be positive, got diagonal_1={diagonal_1}, diagonal_2={diagonal_2}"
+        )
     d1, d2 = max(diagonal_1, diagonal_2), min(diagonal_1, diagonal_2)
     cvai = (abs(d1 - d2) / d1) * 100.0
     logger.debug("CVAI: %.2f%% (d1=%.1fmm, d2=%.1fmm)", cvai, d1, d2)

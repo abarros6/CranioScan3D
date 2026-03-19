@@ -18,6 +18,7 @@ model units).
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from typing import Optional
@@ -88,6 +89,7 @@ class ScaleCorrector:
 
         Raises:
             FileNotFoundError: If input_path does not exist.
+            RuntimeError: If the input mesh is empty or writing fails.
         """
         if not input_path.exists():
             raise FileNotFoundError(f"Input mesh not found: {input_path}")
@@ -328,48 +330,3 @@ class ScaleCorrector:
         logger.warning(
             "Saved UNSCALED mesh to %s — scale correction was not applied", output_path
         )
-
-    @staticmethod
-    def apply_scale(
-        mesh: o3d.geometry.TriangleMesh, scale_factor: float
-    ) -> o3d.geometry.TriangleMesh:
-        """Apply uniform scale factor to an Open3D mesh.
-
-        Scales around the mesh centroid so the shape stays centred.
-
-        Args:
-            mesh: Input triangle mesh (modified in place and returned).
-            scale_factor: Uniform scale factor to apply.
-
-        Returns:
-            Scaled mesh (same object, modified in place).
-        """
-        center = mesh.get_center()
-        mesh.scale(scale_factor, center=center)
-        logger.info("Applied scale factor %.6f to mesh", scale_factor)
-        return mesh
-
-    @staticmethod
-    def compute_scale_factor(detected_size: float, known_size_mm: float) -> float:
-        """Compute the scale factor from detected and known sizes.
-
-        Args:
-            detected_size: Measured size of the reference object in model units.
-            known_size_mm: Known physical size of the reference object in mm.
-
-        Returns:
-            Scale factor: known_size_mm / detected_size.
-
-        Raises:
-            ValueError: If detected_size is zero or negative.
-        """
-        if detected_size <= 0:
-            raise ValueError(f"detected_size must be positive, got {detected_size}")
-        factor = known_size_mm / detected_size
-        logger.debug(
-            "Scale factor: %.6f (known=%.2fmm / detected=%.6f)",
-            factor,
-            known_size_mm,
-            detected_size,
-        )
-        return factor

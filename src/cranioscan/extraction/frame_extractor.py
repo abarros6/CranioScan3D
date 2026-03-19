@@ -74,35 +74,45 @@ class FrameExtractor:
         extracted = 0
         blurry_count = 0
 
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-            if frame_idx % self.config.frame_interval == 0:
-                variance = self._laplacian_variance(frame)
-                if variance < self.config.blur_threshold:
-                    logger.debug(
-                        "Frame %d is blurry (variance=%.1f < %.1f) — skipping",
-                        frame_idx,
-                        variance,
-                        self.config.blur_threshold,
-                    )
-                    blurry_count += 1
-                else:
-                    if self.config.resize_max_dim is not None:
-                        frame = self._resize(frame, self.config.resize_max_dim)
-                    out_path = output_dir / f"frame_{extracted:06d}.{self.config.output_format}"
-                    encode_params: list[int] = []
-                    if self.config.output_format in ("jpg", "jpeg"):
-                        encode_params = [cv2.IMWRITE_JPEG_QUALITY, self.config.jpeg_quality]
-                    cv2.imwrite(str(out_path), frame, encode_params)
-                    saved.append(out_path)
-                    extracted += 1
+                if frame_idx % self.config.frame_interval == 0:
+                    variance = self._laplacian_variance(frame)
+                    if variance < self.config.blur_threshold:
+                        logger.debug(
+                            "Frame %d is blurry (variance=%.1f < %.1f) — skipping",
+                            frame_idx,
+                            variance,
+                            self.config.blur_threshold,
+                        )
+                        blurry_count += 1
+                    else:
+                        if self.config.resize_max_dim is not None:
+                            frame = self._resize(frame, self.config.resize_max_dim)
+                        out_path = output_dir / f"frame_{extracted:06d}.{self.config.output_format}"
+                        encode_params: list[int] = []
+                        if self.config.output_format in ("jpg", "jpeg"):
+                            encode_params = [cv2.IMWRITE_JPEG_QUALITY, self.config.jpeg_quality]
+                        if not cv2.imwrite(str(out_path), frame, encode_params):
+                            raise RuntimeError(f"Failed to write frame to {out_path}")
+                        saved.append(out_path)
+                        extracted += 1
 
-            frame_idx += 1
+                frame_idx += 1
+        finally:
+            cap.release()
 
-        cap.release()
+        if not saved:
+            raise RuntimeError(
+                f"No frames extracted from {video_path.name} — "
+                f"all {blurry_count} sampled frames were below the blur threshold "
+                f"({self.config.blur_threshold}). Lower blur_threshold or improve lighting."
+            )
+
         logger.info(
             "Extracted %d frames (%d blurry skipped) from %d sampled",
             extracted,

@@ -39,22 +39,19 @@ def validate_input_video(path: Path) -> None:
         )
 
     # Quick frame count check via OpenCV
-    try:
-        import cv2
+    import cv2
 
-        cap = cv2.VideoCapture(str(path))
-        if not cap.isOpened():
-            raise ValueError(f"Cannot open video (may be corrupt): {path}")
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.release()
-        if frame_count < MIN_FRAME_COUNT:
-            raise ValueError(
-                f"Video has only {frame_count} frames (minimum {MIN_FRAME_COUNT}). "
-                "Record a longer video orbiting the subject."
-            )
-        logger.info("Input video OK: %s (%d frames)", path.name, frame_count)
-    except ImportError:
-        logger.warning("OpenCV not available — skipping frame count check")
+    cap = cv2.VideoCapture(str(path))
+    if not cap.isOpened():
+        raise ValueError(f"Cannot open video (may be corrupt): {path}")
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    if frame_count < MIN_FRAME_COUNT:
+        raise ValueError(
+            f"Video has only {frame_count} frames (minimum {MIN_FRAME_COUNT}). "
+            "Record a longer video orbiting the subject."
+        )
+    logger.info("Input video OK: %s (%d frames)", path.name, frame_count)
 
 
 def validate_dependencies(config: Config) -> None:

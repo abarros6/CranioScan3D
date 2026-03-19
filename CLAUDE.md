@@ -65,8 +65,8 @@ api/                   # FastAPI REST API — Month 3–4 (not yet created)
   sessions.py          # Session management, background processing
 
 configs/
-  default.yaml         # Full quality
-  fast.yaml            # Half resolution, no mesh refinement — use for dev
+  default.yaml         # Full quality (OPENCV camera model, full-res dense, poisson depth 11)
+  fast.yaml            # Reduced quality for dev iteration
 
 tests/                 # 62 tests, all synthetic data, no COLMAP needed
 ```
@@ -75,7 +75,7 @@ tests/                 # 62 tests, all synthetic data, no COLMAP needed
 
 ---
 
-## Current status (as of 2026-03-18)
+## Current status (as of 2026-03-19)
 
 **Working (end-to-end verified on real video 2026-03-18):**
 - 62/62 tests passing
